@@ -1,7 +1,10 @@
 # Guides
 
-The concept and directory index for `@orkestrel/workspace`, a virtual immutable-file map with an
-editing surface, a registry, and pluggable snapshot stores.
+The specification index for `@orkestrel/workspace` — a path-keyed map of immutable files with an
+editing surface, a registry of named workspaces with one active selection, and pluggable snapshot
+stores. Each guide is the contract for its module: what the module exports, what each call does,
+and what it deliberately does not do. Parity tests hold these documents and the source to each
+other, so a guide that drifts fails.
 
 ## By concept
 
@@ -17,7 +20,8 @@ editing surface, a registry, and pluggable snapshot stores.
 
 ## Dependency reference
 
-These vendored guides document consumed packages rather than this package.
+These vendored guides document the packages this one consumes. They are mirrors kept for reading,
+not contracts this repository owns.
 
 - [`src/contract.md`](src/contract.md) — total guards and contract shapes from
   `@orkestrel/contract`.
