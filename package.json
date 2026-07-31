@@ -1,6 +1,6 @@
 {
 	"name": "@orkestrel/workspace",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "A virtual file workspace for the @orkestrel line — path-keyed immutable files, an edit and search surface, registries with an active pointer, and pluggable snapshot stores. Part of the @orkestrel line.",
 	"keywords": [
 		"edit",
@@ -64,13 +64,13 @@
 	},
 	"dependencies": {
 		"@orkestrel/contract": "^0.0.9",
-		"@orkestrel/database": "^0.0.6",
+		"@orkestrel/database": "^0.0.7",
 		"@orkestrel/emitter": "^0.0.5"
 	},
 	"devDependencies": {
 		"@microsoft/api-extractor": "^7.58.12",
 		"@orkestrel/guide": "^0.0.8",
-		"@orkestrel/scaffold": "^0.0.12",
+		"@orkestrel/scaffold": "^0.0.13",
 		"@types/node": "^26.1.2",
 		"@vitest/browser-playwright": "^4.1.10",
 		"oxfmt": "^0.61.0",
