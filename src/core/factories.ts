@@ -79,9 +79,9 @@ export function createBinaryContent(data: string, mime: BinaryMIME): FileContent
 }
 
 /**
- * Create an empty workspace.
+ * Create a workspace.
  *
- * @param options - Optional identity and emitter configuration
+ * @param options - Optional identity, emitter configuration, and initial files
  * @returns A working workspace
  *
  * @example

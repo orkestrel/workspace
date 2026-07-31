@@ -1,10 +1,10 @@
 import type { EmitterErrorHandler, EmitterHooks } from '@orkestrel/emitter'
 import type {
 	WorkspaceEventMap,
-	WorkspaceInput,
 	WorkspaceInterface,
 	WorkspaceManagerInterface,
 	WorkspaceManagerOptions,
+	WorkspaceOptions,
 	WorkspaceStoreInterface,
 } from '../types.js'
 import { isArray } from '@orkestrel/contract'
@@ -59,17 +59,15 @@ export class WorkspaceManager implements WorkspaceManagerInterface {
 		return [...this.#workspaces.values()]
 	}
 
-	add(input?: WorkspaceInput): WorkspaceInterface {
-		const on = input?.on ?? this.#on
-		const error = input?.error ?? this.#error
-		const workspace = new Workspace(
-			{
-				...(input?.id === undefined ? {} : { id: input.id }),
-				...(on === undefined ? {} : { on }),
-				...(error === undefined ? {} : { error }),
-			},
-			input?.seed,
-		)
+	add(options?: WorkspaceOptions): WorkspaceInterface {
+		const on = options?.on ?? this.#on
+		const error = options?.error ?? this.#error
+		const workspace = new Workspace({
+			...(options?.id === undefined ? {} : { id: options.id }),
+			...(on === undefined ? {} : { on }),
+			...(error === undefined ? {} : { error }),
+			...(options?.seed === undefined ? {} : { seed: options.seed }),
+		})
 		this.#workspaces.set(workspace.id, workspace)
 		if (this.#active === undefined) this.#active = workspace.id
 		return workspace
@@ -91,7 +89,7 @@ export class WorkspaceManager implements WorkspaceManagerInterface {
 		if (this.#store === undefined) return undefined
 		const snapshot = await this.#store.get(id)
 		if (snapshot === undefined) return undefined
-		const workspace = this.add({ id, seed: snapshot.files.map((file) => [file.path, file]) })
+		const workspace = this.add({ id, seed: snapshot.files })
 		this.#active = workspace.id
 		return workspace
 	}
@@ -103,8 +101,8 @@ export class WorkspaceManager implements WorkspaceManagerInterface {
 		return true
 	}
 
-	remove(ids: readonly string[]): boolean
 	remove(id: string): boolean
+	remove(ids: readonly string[]): boolean
 	remove(ids: string | readonly string[]): boolean {
 		if (isArray(ids)) {
 			let removed = false
@@ -117,13 +115,17 @@ export class WorkspaceManager implements WorkspaceManagerInterface {
 	}
 
 	clear(): void {
+		for (const workspace of this.#workspaces.values()) workspace.destroy()
 		this.#workspaces.clear()
 		this.#active = undefined
 	}
 
 	#drop(id: string): boolean {
-		const removed = this.#workspaces.delete(id)
-		if (removed && this.#active === id) this.#active = undefined
-		return removed
+		const workspace = this.#workspaces.get(id)
+		if (workspace === undefined) return false
+		this.#workspaces.delete(id)
+		workspace.destroy()
+		if (this.#active === id) this.#active = undefined
+		return true
 	}
 }

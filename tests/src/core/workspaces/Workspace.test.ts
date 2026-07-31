@@ -32,7 +32,7 @@ function range(startLine: number, startColumn: number, endLine: number, endColum
 // only text). Returns the live Workspace so the modality rules run against genuine content.
 function imageWorkspace(): Workspace {
 	const image = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
-	return new Workspace(undefined, [['icon.png', image]])
+	return new Workspace({ seed: [image] })
 }
 
 describe('Workspace — write / read round-trip + state transition', () => {
@@ -144,7 +144,10 @@ describe('Workspace — ranged write (splice) + clamping', () => {
 
 	it('throws MODALITY on a ranged write to an absent path (no text file to splice)', () => {
 		expect(() => createWorkspace().write('missing.ts', 'x', range(1, 1, 1, 1))).toThrowError(
-			expect.objectContaining({ code: 'MODALITY' }),
+			expect.objectContaining({
+				code: 'MODALITY',
+				message: 'Cannot splice a range of a missing file: missing.ts',
+			}),
 		)
 	})
 })
@@ -235,12 +238,12 @@ describe('Workspace — search', () => {
 		expect(matches.map((m) => m.column)).toEqual([1, 4, 7])
 	})
 
-	it('is case-sensitive by default and case-insensitive with exact:false', () => {
+	it('is case-sensitive by default and case-insensitive with sensitive:false', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'Hello hello HELLO')
 
 		expect(workspace.search('hello')).toHaveLength(1)
-		expect(workspace.search('hello', { exact: false })).toHaveLength(3)
+		expect(workspace.search('hello', { sensitive: false })).toHaveLength(3)
 	})
 
 	it('stops at the limit across files in insertion order', () => {
@@ -286,7 +289,7 @@ describe('Workspace — replace', () => {
 
 		const result = workspace.replace('const', 'let')
 
-		expect(result).toEqual({ query: 'const', replaced: 3, files: 2 })
+		expect(result).toEqual({ occurrences: 3, files: 2 })
 		expect(workspace.read('a.ts')).toBe('let x = 1\nlet y = 2')
 		expect(workspace.read('b.ts')).toBe('let z = 3')
 		expect(workspace.read('c.ts')).toBe('let w = 4') // untouched
@@ -300,7 +303,7 @@ describe('Workspace — replace', () => {
 
 		const result = workspace.replace('a', 'b')
 
-		expect(result).toEqual({ query: 'a', replaced: 4, files: 2 })
+		expect(result).toEqual({ occurrences: 4, files: 2 })
 		expect(events.write.count).toBe(2) // one per changed file, not per occurrence
 		expect(workspace.file('a.ts')?.state).toBe('modified')
 	})
@@ -311,8 +314,21 @@ describe('Workspace — replace', () => {
 
 		const result = workspace.replace('a\\d', 'X', { regex: true, limit: 2 })
 
-		expect(result.replaced).toBe(2)
+		expect(result.occurrences).toBe(2)
 		expect(workspace.read('a.ts')).toBe('X X a3')
+	})
+
+	it('shares sensitive behavior with search while keeping the default unchanged', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'Hello hello HELLO')
+
+		expect(workspace.replace('hello', 'x')).toEqual({ occurrences: 1, files: 1 })
+		expect(workspace.read('a.ts')).toBe('Hello x HELLO')
+		expect(workspace.replace('hello', 'y', { sensitive: false })).toEqual({
+			occurrences: 2,
+			files: 1,
+		})
+		expect(workspace.read('a.ts')).toBe('y x y')
 	})
 
 	it('throws PATTERN on an invalid regex', () => {
@@ -341,10 +357,12 @@ describe('Workspace — move', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'from')
 		workspace.write('b.ts', 'to')
+		workspace.write('c.ts', 'after')
 
 		expect(workspace.move('a.ts', 'b.ts')).toBe(true)
 		expect(workspace.read('b.ts')).toBe('from')
-		expect(workspace.count).toBe(1)
+		expect(workspace.count).toBe(2)
+		expect(workspace.files().map((file) => file.path)).toEqual(['b.ts', 'c.ts'])
 	})
 
 	it('returns false for an absent source', () => {
@@ -361,6 +379,34 @@ describe('Workspace — move', () => {
 		expect(workspace.read('y.ts')).toBe('B')
 
 		expect(workspace.move({ 'gone.ts': 'z.ts' })).toBe(false) // none moved
+	})
+
+	it('preserves the source slot across files, snapshots, search, and replacement', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'alpha')
+		workspace.write('b.ts', 'needle')
+		workspace.write('c.ts', 'charlie')
+
+		expect(workspace.move('b.ts', 'x.ts')).toBe(true)
+		expect(workspace.files().map((file) => file.path)).toEqual(['a.ts', 'x.ts', 'c.ts'])
+		expect(workspace.snapshot().files.map((file) => file.path)).toEqual(['a.ts', 'x.ts', 'c.ts'])
+		expect(workspace.search('needle').map((match) => match.path)).toEqual(['x.ts'])
+		expect(workspace.replace('needle', 'changed')).toEqual({ occurrences: 1, files: 1 })
+		expect(workspace.files().map((file) => file.path)).toEqual(['a.ts', 'x.ts', 'c.ts'])
+		expect(workspace.read('x.ts')).toBe('changed')
+	})
+
+	it('treats a same-path move as an exact no-op', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'alpha')
+		const file = workspace.file('a.ts')
+		const snapshot = workspace.snapshot()
+		const events = recordEmitterEvents(workspace.emitter, ['move'])
+
+		expect(workspace.move('a.ts', 'a.ts')).toBe(false)
+		expect(workspace.file('a.ts')).toBe(file)
+		expect(workspace.snapshot()).toEqual(snapshot)
+		expect(events.move.count).toBe(0)
 	})
 })
 
@@ -381,15 +427,6 @@ describe('Workspace — remove / clear', () => {
 		expect(workspace.remove(['a.ts', 'missing.ts'])).toBe(true) // a.ts dropped
 		expect(workspace.count).toBe(1)
 		expect(workspace.remove(['gone.ts'])).toBe(false)
-	})
-
-	it('empties the workspace with remove() (no argument)', () => {
-		const workspace = createWorkspace()
-		workspace.write({ 'a.ts': 'A', 'b.ts': 'B' })
-
-		workspace.remove()
-
-		expect(workspace.count).toBe(0)
 	})
 
 	it('empties the workspace with clear()', () => {
@@ -444,7 +481,10 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 		const workspace = imageWorkspace()
 
 		expect(() => workspace.write('icon.png', 'x', range(1, 1, 1, 2))).toThrowError(
-			expect.objectContaining({ code: 'MODALITY' }),
+			expect.objectContaining({
+				code: 'MODALITY',
+				message: 'Cannot splice a range of a binary file: icon.png',
+			}),
 		)
 	})
 
@@ -464,7 +504,7 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 		workspace.write('a.ts', 'AAAA') // a text file with the same content as the image base64
 
 		expect(workspace.search('AAAA')).toHaveLength(1) // only the text file
-		expect(workspace.replace('AAAA', 'x')).toEqual({ query: 'AAAA', replaced: 1, files: 1 })
+		expect(workspace.replace('AAAA', 'x')).toEqual({ occurrences: 1, files: 1 })
 		expect(workspace.read('icon.png')).toBeUndefined() // image untouched
 	})
 
@@ -499,20 +539,20 @@ describe('Workspace — emitter events + listener isolation', () => {
 		workspace.clear() // clear
 
 		expect(events.write.calls.map(([file]) => file.path)).toEqual(['a.ts', 'c.ts'])
-		expect(events.move.calls).toEqual([[{ from: 'a.ts', to: 'b.ts' }]])
+		expect(events.move.calls).toEqual([['a.ts', 'b.ts']])
 		expect(events.remove.calls).toEqual([['b.ts']])
 		expect(events.clear.count).toBe(1)
 	})
 
-	it('emits clear from remove() (no argument), the canonical emptied signal', () => {
+	it('emits clear from clear(), the canonical emptied signal', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'x')
 		const events = recordEmitterEvents(workspace.emitter, ['clear', 'remove'])
 
-		workspace.remove()
+		workspace.clear()
 
 		expect(events.clear.count).toBe(1)
-		expect(events.remove.count).toBe(0) // remove() emits clear, not per-path remove
+		expect(events.remove.count).toBe(0)
 	})
 
 	it('does not emit remove when the path was absent', () => {
@@ -575,9 +615,11 @@ describe('Workspace — id (minted or supplied)', () => {
 	it('uses the supplied id from options (constructor or factory)', () => {
 		expect(createWorkspace({ id: 'fixed' }).id).toBe('fixed')
 		// The id is honored alongside the optional construction-time seed.
-		const seeded = new Workspace({ id: 'seeded' }, [
-			['a.ts', createFile({ path: 'a.ts', content: { text: 'x', language: 'typescript' } })],
-		])
+		const file = createFile({
+			path: 'a.ts',
+			content: { text: 'x', language: 'typescript' },
+		})
+		const seeded = new Workspace({ id: 'seeded', seed: [file] })
 		expect(seeded.id).toBe('seeded')
 	})
 })
@@ -592,17 +634,59 @@ describe('Workspace — construction-time seed (the hydration seam)', () => {
 			path: 'a.ts',
 			content: { text: 'x', language: 'typescript' },
 		})
-		const events = recordEmitterEvents(new Workspace().emitter, ['write'])
-		const workspace = new Workspace(undefined, [
-			['icon.png', image],
-			['a.ts', text],
-		])
+		const writes: string[] = []
+		const workspace = new Workspace({
+			seed: [image, text],
+			on: { write: (file) => writes.push(file.path) },
+		})
 
 		expect(workspace.count).toBe(2)
 		expect(workspace.files().map((file) => file.path)).toEqual(['icon.png', 'a.ts'])
 		const seededImage = workspace.file('icon.png')
 		expect(seededImage !== undefined && !isText(seededImage.content)).toBe(true)
 		expect(workspace.read('a.ts')).toBe('x')
-		expect(events.write.count).toBe(0) // seeding is silent — nothing was edited
+		expect(writes).toEqual([])
+	})
+
+	it('keys seed values by file.path with duplicate paths using the last value', () => {
+		const first = createFile({
+			path: 'same.txt',
+			content: { text: 'first', language: 'text' },
+			state: 'created',
+		})
+		const last = createFile({
+			path: 'same.txt',
+			content: { text: 'last', language: 'text' },
+			state: 'modified',
+		})
+		const workspace = createWorkspace({ seed: [first, last] })
+
+		expect(workspace.count).toBe(1)
+		expect(workspace.file('same.txt')).toBe(last)
+		expect(workspace.snapshot().files).toEqual([last])
+	})
+})
+
+describe('Workspace — destroy lifecycle', () => {
+	it('destroys its owned emitter last and remains functional but unobserved', () => {
+		const written: string[] = []
+		const workspace = createWorkspace({ on: { write: (file) => written.push(file.path) } })
+		workspace.write('before.txt', 'before')
+		const emitter = workspace.emitter
+
+		workspace.destroy()
+
+		expect(emitter.destroyed).toBe(true)
+		expect(workspace.read('before.txt')).toBe('before')
+		workspace.write('after.txt', 'after')
+		expect(workspace.read('after.txt')).toBe('after')
+		expect(written).toEqual(['before.txt'])
+	})
+
+	it('is idempotent when destroyed twice', () => {
+		const workspace = createWorkspace()
+		workspace.destroy()
+		expect(() => workspace.destroy()).not.toThrow()
+		expect(workspace.emitter.destroyed).toBe(true)
 	})
 })

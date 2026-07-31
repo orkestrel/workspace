@@ -16,11 +16,8 @@
 > day wrote those snapshots to disk would be one more implementation of that interface, not a
 > change of identity here.
 >
-> **Anyone can drive it.** `workspace.write(path, text)` is an ordinary call and plain application
-> code is a first-class caller. `@orkestrel/agent` holds an active workspace and renders it into a
-> prompt — that rendering is the agent's decision, not this package's — and `@orkestrel/toolbox`
-> exposes the manager's operations as callable tools. Neither is privileged, and neither is
-> described here.
+> **Anyone can drive it.** An agent loop, a tool handler, and plain application code are all just
+> callers.
 
 Three nouns carry the package. A `Workspace` is the live editing surface over one map of files. A
 `WorkspaceManager` is a registry of workspaces keyed by id, with an active selection and, when a
@@ -39,32 +36,30 @@ absent optional field is simply absent.
 | --------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BinaryMIME`                | type      | The MIME labels a binary arm may carry: `image/png`, `image/jpeg`, `image/gif`, `image/webp`.                                                        |
 | `FileContent`               | type      | `{ text, language } \| { data, mime }` — the tagless text-or-binary union, narrowed by guard rather than by a discriminant field.                    |
-| `FileState`                 | type      | `created \| modified \| loaded \| deleted` — where a file value came from.                                                                           |
+| `FileState`                 | type      | `created \| modified` — whether the value was minted for a new path or changed from an existing one.                                                 |
 | `FileInput`                 | interface | `{ path, content, state? }` — what `createFile` needs; size and line counts are derived, never supplied.                                             |
 | `FileInterface`             | interface | `{ path, content, state, size, lines }` — one frozen file value.                                                                                     |
 | `Position`                  | interface | `{ line, column }` — both 1-based.                                                                                                                   |
 | `Range`                     | interface | `{ start, end }` — half-open: `start` is included, `end` is not.                                                                                     |
 | `ReadResult`                | interface | `{ content, range }` — the text a ranged read returned and the clamped span it actually covered.                                                     |
-| `SearchOptions`             | interface | `{ regex?, exact?, limit? }` — treat the query as pattern source, match case, and cap the hits.                                                      |
+| `SearchOptions`             | interface | `{ regex?, sensitive?, limit? }` — shared search/replace controls; `sensitive: false` enables case-insensitive matching.                             |
 | `SearchMatch`               | interface | `{ path, line, column, length, content }` — one 1-based hit and the whole line that contains it.                                                     |
-| `ReplaceOptions`            | interface | `{ regex?, exact?, limit? }` — the same three controls, capping replacements instead of hits.                                                        |
-| `ReplaceResult`             | interface | `{ query, replaced, files }` — the query as issued, occurrences replaced, and files changed.                                                         |
-| `WorkspaceEventMap`         | type      | The emitted tuples: `write`, `remove`, `move`, `clear`.                                                                                              |
-| `WorkspaceOptions`          | interface | `{ id?, on?, error? }` — construction identity plus initial listeners; an absent `id` is minted.                                                     |
+| `ReplaceResult`             | interface | `{ occurrences, files }` — the occurrences replaced and files changed.                                                                               |
+| `WorkspaceEventMap`         | type      | The emitted tuples: `write: [file]`, `remove: [path]`, `move: [from, to]`, `clear: []`.                                                              |
+| `WorkspaceOptions`          | interface | `{ id?, on?, error?, seed? }` — identity, emitter setup, and optional file-value hydration; an absent `id` is minted.                                |
 | `WorkspaceSnapshot`         | interface | `{ id, files }` — the JSON-serializable form a store persists.                                                                                       |
 | `WorkspaceStoreInterface`   | interface | The async snapshot seam, keyed by workspace id. See [`## Methods`](#methods).                                                                        |
 | `WorkspaceSnapshotRow`      | interface | `{ id, snapshot }` — the two-column row `DatabaseWorkspaceStore` writes, the snapshot staying opaque to the table.                                   |
 | `WorkspaceErrorCode`        | type      | `MODALITY \| PATTERN \| RANGE` — the three ways an edit or search is refused.                                                                        |
 | `WorkspaceInterface`        | interface | The live editing contract; its readonly `id`, `emitter`, and `count` expose identity, observation, and the file tally. See [`## Methods`](#methods). |
-| `WorkspaceInput`            | interface | `{ id?, on?, error?, seed? }` — what the registry needs to create a workspace, `seed` seating pre-built files silently.                              |
 | `WorkspaceManagerOptions`   | interface | `{ on?, error?, store? }` — listener defaults for created workspaces plus optional durability.                                                       |
 | `WorkspaceManagerInterface` | interface | The registry contract; its readonly `count` and `active` expose the tally and the current selection. See [`## Methods`](#methods).                   |
 
 ### Constants
 
-| Name                    | Kind  | Purpose                                                                                                        |
-| ----------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
-| `EXTENSION_TO_LANGUAGE` | const | The frozen extension-to-language table behind `inferLanguage`; an extension it does not list resolves to text. |
+| Name                  | Kind  | Purpose                                                                                                        |
+| --------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| `EXTENSION_LANGUAGES` | const | The frozen extension-to-language table behind `inferLanguage`; an extension it does not list resolves to text. |
 
 ### Errors
 
@@ -86,7 +81,6 @@ on its own, and the classes compose them rather than hiding them.
 | `inferLanguage`       | function | `(path: string) => string`                                    | Maps the final extension to a language tag, falling back to `text`.            |
 | `isText`              | function | `(content: FileContent) => boolean`                           | Narrows content to its text arm.                                               |
 | `isBinary`            | function | `(content: FileContent) => boolean`                           | Narrows content to its binary arm.                                             |
-| `isImage`             | function | `(content: FileContent) => boolean`                           | Reports a binary arm whose MIME is an image, for callers that render one.      |
 | `isFile`              | function | `(value: unknown) => value is FileInterface`                  | Total guard for a file value arriving from outside the process.                |
 | `isWorkspaceSnapshot` | function | `(value: unknown) => value is WorkspaceSnapshot`              | Total guard for a snapshot read back from a store.                             |
 | `computeSize`         | function | `(content: FileContent) => number`                            | UTF-8 bytes for text, decoded bytes for binary.                                |
@@ -111,7 +105,7 @@ class. Each returns the interface, not the class.
 | `createFile`                   | function | `(input: FileInput) => FileInterface`                              | Freezes a file value and derives its `size` and `lines`.                                 |
 | `createTextContent`            | function | `(text: string, language: string) => FileContent`                  | Builds the text arm.                                                                     |
 | `createBinaryContent`          | function | `(data: string, mime: BinaryMIME) => FileContent`                  | Builds the binary arm.                                                                   |
-| `createWorkspace`              | function | `(options?: WorkspaceOptions) => WorkspaceInterface`               | Creates an empty workspace.                                                              |
+| `createWorkspace`              | function | `(options?: WorkspaceOptions) => WorkspaceInterface`               | Creates a workspace with the same identity, emitter, and seed reach as the constructor.  |
 | `createMemoryWorkspaceStore`   | function | `() => WorkspaceStoreInterface`                                    | Creates a process-local snapshot store.                                                  |
 | `createDatabaseWorkspaceStore` | function | `(driver?: DriverInterface) => WorkspaceStoreInterface`            | Creates a snapshot store over a database table; the driver defaults to an in-memory one. |
 | `createWorkspaceManager`       | function | `(options?: WorkspaceManagerOptions) => WorkspaceManagerInterface` | Creates an empty registry.                                                               |
@@ -121,9 +115,10 @@ class. Each returns the interface, not the class.
 The implementing class of `WorkspaceInterface`, from
 [`Workspace.ts`](../../src/core/workspaces/Workspace.ts). One insertion-ordered path map is its
 whole state, and `files()` and `snapshot()` project fresh arrays out of it rather than exposing a
-view. Its constructor takes an optional second argument — an iterable of path-to-file entries —
-which seats pre-built files silently, emitting nothing. That seed is the only way a binary file
-enters a workspace, because the edit surface itself mints text and nothing else. See
+view. Its constructor takes one optional `WorkspaceOptions` value. The `seed` iterable seats
+pre-built files by each value's `path`, silently and with the last duplicate path winning. That
+seed is the only way a binary file enters a workspace, because the edit surface itself mints text
+and nothing else. See
 [`## Methods`](#methods) for its public call surface.
 
 ### `WorkspaceManager`
@@ -169,9 +164,10 @@ The public call-signature members of each behavioral interface, one table per in
 | `prepend`  | `void`                          | Puts text before existing content, for one path or a record batch.                                |
 | `append`   | `void`                          | Puts text after existing content, for one path or a record batch.                                 |
 | `move`     | `boolean`                       | Re-keys one file or a mapping batch, reporting whether anything moved.                            |
-| `remove`   | `boolean \| void`               | Drops one path, a batch of paths, or — with no argument — every file.                             |
+| `remove`   | `boolean`                       | Drops one path or a batch of paths, reporting whether anything was removed.                       |
 | `clear`    | `void`                          | Empties the workspace and emits `clear`.                                                          |
 | `snapshot` | `WorkspaceSnapshot`             | Projects the id and a flat file list into a serializable value.                                   |
+| `destroy`  | `void`                          | Tears down observation while leaving the editing surface functional.                              |
 
 #### `WorkspaceManagerInterface`
 
@@ -213,7 +209,6 @@ import {
 	createTextContent,
 	inferLanguage,
 	isBinary,
-	isImage,
 	isText,
 } from '@orkestrel/workspace'
 
@@ -229,21 +224,23 @@ isText(note.content) // true
 
 const icon = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
 isBinary(icon.content) // true
-isImage(icon.content) // true — the MIME leads with 'image/'
 icon.size // 3 — decoded base64 bytes, via decodedSize
 ```
 
-Language is inferred once, from the final path extension through `EXTENSION_TO_LANGUAGE`, and an
+Language is inferred once, from the final path extension through `EXTENSION_LANGUAGES`, and an
 unlisted extension resolves to `text`. Re-writing an existing text file keeps the language it
 already had, so a caller that set one deliberately does not lose it to a rename-shaped write.
 
-`FileState` records where a value came from, not whether it is dirty — there is no dirty tracking
-here to derive. The edit surface mints only `created` and `modified`: the first write to a path is
-`created`, every later edit of that path is `modified`. `loaded` and `deleted` exist for callers
-that seat values themselves through the construction seed, and `isFile` is the total guard for a
-value arriving from anywhere outside this process.
+`FileState` has a two-value vocabulary: the first write to a path is `created`, and every later
+edit of that path is `modified`. Hydration preserves whichever stored state the file already
+carries verbatim; it does not synthesize provenance. There is no dirty tracking, and `isFile` is
+the total guard for a value arriving from outside this process.
 
 ## Editing
+
+Editing returns its documented value when the request has meaning and throws only when a text
+operation cannot be applied. Missing lookups and no-op moves or removals answer with values rather
+than exceptions; `MODALITY` and `RANGE` identify the two edit refusals below.
 
 Writes come in three shapes: whole text, a clamped range, and a record batch. Prepend and append
 are the two ends of the same map.
@@ -267,13 +264,14 @@ string over a binary path deliberately retypes it as text. Prepend and append tr
 as empty text and create it. Aimed at binary content, though, they throw `MODALITY` — there is no
 sensible text to concatenate onto base64 data.
 
-A ranged write is stricter, because it addresses text that must already exist. It refuses a path
-that is absent or binary with `MODALITY`, and refuses a structurally impossible range — inverted,
-or with a coordinate below one — with `RANGE`. A range that is merely too large is not an error:
-both endpoints clamp to the text's bounds, so `rangeOf(1, 2, 9, 9)` over `'abc'` addresses
-everything from the second column onward. The pure functions behind that behavior are exported and
-usable on their own: `isValidRange`, `clampPosition`, `clampRange`, `offsetAt`, `sliceRange`, and
-`spliceRange`.
+A ranged write is stricter, because it addresses text that must already exist. It refuses an
+absent path with `Cannot splice a range of a missing file: <path>` and a binary path with
+`Cannot splice a range of a binary file: <path>`, both under `MODALITY`. A structurally impossible
+range — inverted, or with a coordinate below one — throws `RANGE`. A range that is merely too
+large is not an error: both endpoints clamp to the text's bounds, so `rangeOf(1, 2, 9, 9)` over
+`'abc'` addresses everything from the second column onward. The pure functions behind that
+behavior are exported and usable on their own: `isValidRange`, `clampPosition`, `clampRange`,
+`offsetAt`, `sliceRange`, and `spliceRange`.
 
 Ranges are half-open and 1-based. `rangeOf(1, 1, 1, 6)` covers the first five columns of line one,
 which is the convention every editor position in this package follows.
@@ -301,8 +299,8 @@ workspace.has(['missing.ts', 'b.ts']) // true — any present
 
 workspace.search('const') // three matches, a.ts before b.ts, line order within each
 workspace.search('[a-z]\\d', { regex: true }) // pattern source instead of literal text
-workspace.search('CONST', { exact: false, limit: 2 }) // case-insensitive, capped
-workspace.replace('const', 'let') // { query: 'const', replaced: 3, files: 2 }
+workspace.search('CONST', { sensitive: false, limit: 2 })
+workspace.replace('const', 'let') // { occurrences: 3, files: 2 }
 escapeRegExp('a.b') // 'a\\.b' — what a literal search does for you
 ```
 
@@ -312,15 +310,14 @@ named coordinates that cannot exist. Search and replace skip binary content enti
 that happens to spell a query is never a hit.
 
 A query is literal by default — `escapeRegExp` neutralizes its metacharacters — and `regex: true`
-passes it through as pattern source instead. `exact: false` matches case-insensitively; `limit`
-caps hits for `search` and replacements for `replace`, counted across files in insertion order. A
-pattern that will not compile throws `PATTERN` rather than silently matching nothing. A
-zero-width pattern such as `a*` terminates: the scan advances past an empty match instead of
-re-matching the same column.
+passes it through as pattern source instead. `limit` caps hits for `search` and replacements for
+`replace`, counted across files in insertion order. A pattern that will not compile throws
+`PATTERN` rather than silently matching nothing. A zero-width pattern such as `a*` terminates: the
+scan advances past an empty match instead of re-matching the same column.
 
-`replace` returns `{ query, replaced, files }`: how many occurrences changed and how many files
-they were spread across. It rewrites each changed file once, so a file with four replacements emits
-one `write` event, and a file with no match is never touched.
+`replace` returns `{ occurrences, files }`: how many occurrences changed and how many files they
+were spread across. It rewrites each changed file once, so a file with four replacements emits one
+`write` event, and a file with no match is never touched.
 
 ## Moving, removing, and snapshots
 
@@ -338,19 +335,19 @@ workspace.snapshot() // { id: 'project', files: [ … ] } — plain, serializabl
 
 workspace.remove('src/new.ts') // true
 workspace.remove(['docs/draft.md', 'ghost.ts']) // true — any one removal counts
-workspace.remove() // every file, emitting clear
-workspace.clear() // the same emptying, said directly
+workspace.clear() // empties the workspace and emits clear
 ```
 
 A move re-keys a file to a new path and marks the result `modified`; the moved value carries the
-new path, since a file's `path` is part of its value. An occupied target is overwritten — last
-write wins, and the file count drops by one — because a workspace has no notion of a conflict to
-raise. A missing source is not a failure either: `move` reports `false` and changes nothing.
+new path, since a file's `path` is part of its value. Rebuilding the map keeps the moved value in
+the source's insertion slot. An occupied target is removed while the source content remains in
+that source slot, so the file count drops by one. A missing source is not a failure either:
+`move` reports `false` and changes nothing. Moving a path to itself is the same exact no-op: it
+returns `false`, preserves the value and order, and emits nothing.
 
 `remove` mirrors that leniency, reporting whether anything was actually dropped rather than
-throwing over an absent path. Called with no argument it empties the workspace and emits `clear`,
-which is the same signal `clear()` sends — one canonical emptied event, never a burst of per-path
-removals.
+throwing over an absent path. `clear()` owns emptying the workspace and sends one canonical
+`clear` event, never a burst of per-path removals.
 
 `snapshot()` is the boundary between the live surface and everything durable: an id and a flat file
 list, holding the same frozen values the map holds. Feed those files back through a workspace's
@@ -366,13 +363,27 @@ changed, so a listener always observes the settled state.
 | -------- | ------------------ | -------------------------------------------------------------- |
 | `write`  | the resulting file | after a write, splice, prepend, append, or changed replacement |
 | `remove` | the removed path   | after a path that was present is dropped                       |
-| `move`   | `{ from, to }`     | after the map is re-keyed                                      |
-| `clear`  | none               | after `clear()` or an argument-free `remove()`                 |
+| `move`   | `from, to`         | after the map is re-keyed                                      |
+| `clear`  | none               | after `clear()`                                                |
 
 A listener that throws is isolated by the emitter and routed to the workspace's `error` handler:
 the edit still lands and the call that triggered it returns normally. Nothing is emitted for a
 no-op — removing an absent path, or replacing a query that matched nothing — and construction-time
 seeding is silent, because seeding is hydration rather than editing.
+
+## Lifecycle
+
+`clear()` resets file state while leaving observation live. `destroy()` is the teardown boundary:
+it releases the owned emitter last, is idempotent, and leaves file operations functional. Writes
+after destruction still land, but the destroyed emitter delivers no further events.
+
+```ts
+import { createWorkspace } from '@orkestrel/workspace'
+
+const workspace = createWorkspace()
+workspace.destroy()
+workspace.write('silent.txt', 'still stored') // succeeds without delivering an event
+```
 
 ## The registry
 
@@ -407,9 +418,10 @@ workspace, and because `active` is resolved through the map on every read, a rep
 resolves to the replacement rather than to a detached instance.
 
 Listener defaults given to the manager flow into every workspace it creates, and per-add `on` or
-`error` overrides them outright rather than merging. `seed` seats pre-built files into the new
-workspace silently — the same hydration seam `open` uses. Registered workspaces share nothing else:
-each owns its own files, its own emitter, and its own id.
+`error` overrides them outright rather than merging. The same `WorkspaceOptions` shape reaches
+`add`; its `seed` seats pre-built files into the new workspace silently, which is the hydration
+seam `open` uses. `remove` and `clear` destroy each workspace as it leaves the registry. Registered
+workspaces share nothing else: each owns its own files, its own emitter, and its own id.
 
 ## Durability
 
@@ -450,6 +462,8 @@ touching the store at all. Only a miss reaches the store, and a snapshot that co
 hydrated into a new workspace through the seed, registered, and made active even when the registry
 was not empty. A miss with no store, or a miss the store cannot satisfy, returns `undefined`.
 `save` writes the snapshot under its own id, so saving twice upserts rather than accumulating.
+Removing a workspace from the registry does not delete its stored snapshot; dropping durable state
+is the store's `delete`.
 
 `MemoryWorkspaceStore` keeps snapshots in a map for the lifetime of the process — a real store with
 a short memory, useful wherever durability is not the point. `DatabaseWorkspaceStore` writes one
@@ -467,11 +481,11 @@ to a remote service would satisfy the same contract and change nothing about wha
 Three codes describe every refusal, and `WorkspaceError` carries the code plus the context the
 operation had:
 
-| Code       | Raised by                                                                                    |
-| ---------- | -------------------------------------------------------------------------------------------- |
-| `MODALITY` | a text-only operation aimed at binary content, or a ranged write with no text file to splice |
-| `RANGE`    | a ranged write whose range is inverted or has a coordinate below one                         |
-| `PATTERN`  | a search or replacement whose pattern source will not compile                                |
+| Code       | Raised by                                                                                |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| `MODALITY` | a text-only operation aimed at binary content, or a ranged write aimed at a missing path |
+| `RANGE`    | a ranged write whose range is inverted or has a coordinate below one                     |
+| `PATTERN`  | a search or replacement whose pattern source will not compile                            |
 
 ```ts
 import { createWorkspace, isWorkspaceError } from '@orkestrel/workspace'
@@ -492,11 +506,12 @@ in a way that cannot mean anything.
 
 ## Callers
 
-The surface is deliberately narrow enough that no caller is special. `@orkestrel/agent` keeps a
-manager, treats `active` as the workspace under discussion, and renders its files into a prompt —
-that projection is the agent's product decision and lives there, not here. `@orkestrel/toolbox`
-wraps the same operations as callable tools so a model can write, search, and switch workspaces
-through ordinary tool calls. Plain code skips both: build a workspace, edit it, snapshot it.
+The surface is deliberately narrow enough that no caller is special. `@orkestrel/agent` is one
+such caller: an agent loop can keep a manager, treat `active` as the workspace under discussion,
+and render its files into a prompt. That projection is the agent's product decision and lives
+there, not here. `@orkestrel/toolbox` is another caller: a tool handler can expose the same
+operations as callable tools. Plain code can skip both and build a workspace, edit it, and snapshot
+it directly.
 
 What a workspace holds is equally open. Files a program generated, documents fetched from
 elsewhere, a scratch space that never becomes anything — the map does not care, because nothing

@@ -4,7 +4,7 @@
  * Unknown extensions intentionally fall back to `text` in
  * {@link import('./helpers.js').inferLanguage}.
  */
-export const EXTENSION_TO_LANGUAGE: Readonly<Record<string, string>> = Object.freeze({
+export const EXTENSION_LANGUAGES: Readonly<Record<string, string>> = Object.freeze({
 	ts: 'typescript',
 	tsx: 'typescript',
 	js: 'javascript',

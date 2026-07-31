@@ -12,8 +12,8 @@ It is not a filesystem. There is no disk, no `node:fs`, no watcher, no synchroni
 and no dirty-state tracking — a path is a key, not a location. Durability is a separate seam: a
 snapshot is a plain serializable value, and a store is the thing that keeps one.
 
-Nothing here is model-specific. An agent loop, an LLM tool, and plain application code are all just
-callers.
+Nothing here is model-specific. An agent loop, a tool handler, and plain application code are all
+just callers.
 
 ## Install
 

@@ -1,4 +1,3 @@
-import type { FileInterface } from '@src/core'
 import {
 	createBinaryContent,
 	createFile,
@@ -86,7 +85,7 @@ describe('WorkspaceManager — add / accessors / count', () => {
 			content: { text: 'const x = 1', language: 'typescript' },
 		})
 
-		const workspace = manager.add({ seed: [['a.ts', text]] })
+		const workspace = manager.add({ seed: [text] })
 
 		expect(workspace.count).toBe(1)
 		expect(workspace.read('a.ts')).toBe('const x = 1')
@@ -203,6 +202,23 @@ describe('WorkspaceManager — remove (§9.2) / clear', () => {
 		expect(manager.workspaces()).toEqual([])
 		expect(manager.active).toBeUndefined()
 	})
+
+	it('destroys every workspace departing through single, batch, and clear removal', () => {
+		const manager = new WorkspaceManager()
+		const single = manager.add({ id: 'single' })
+		const batchA = manager.add({ id: 'batch-a' })
+		const batchB = manager.add({ id: 'batch-b' })
+		const cleared = manager.add({ id: 'cleared' })
+
+		expect(manager.remove('single')).toBe(true)
+		expect(single.emitter.destroyed).toBe(true)
+		expect(manager.remove(['batch-a', 'batch-b'])).toBe(true)
+		expect(batchA.emitter.destroyed).toBe(true)
+		expect(batchB.emitter.destroyed).toBe(true)
+		expect(cleared.emitter.destroyed).toBe(false)
+		manager.clear()
+		expect(cleared.emitter.destroyed).toBe(true)
+	})
 })
 
 describe('WorkspaceManager — defaults flow into created workspaces, per-add overrides win', () => {
@@ -296,10 +312,7 @@ describe('WorkspaceManager — open / save over a real store (W-d hydration seam
 		const icon = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
 		const seeded = author.add({
 			id: 'project',
-			seed: [
-				...original.files().map((file): readonly [string, FileInterface] => [file.path, file]),
-				['icon.png', icon],
-			],
+			seed: [...original.files(), icon],
 		})
 		expect(await author.save('project')).toBe(true)
 
@@ -392,6 +405,45 @@ describe('WorkspaceManager — open / save over a real store (W-d hydration seam
 		expect(opened?.read('a.txt')).toBe('v2')
 		expect(opened?.read('b.txt')).toBe('new')
 	})
+
+	it('keeps a stored snapshot when its live workspace leaves the registry', async () => {
+		const store = createMemoryWorkspaceStore()
+		const manager = new WorkspaceManager({ store })
+		const workspace = manager.add({ id: 'durable' })
+		workspace.write('a.txt', 'saved')
+		expect(await manager.save('durable')).toBe(true)
+		expect(manager.remove('durable')).toBe(true)
+
+		const reader = new WorkspaceManager({ store })
+		expect((await reader.open('durable'))?.read('a.txt')).toBe('saved')
+	})
+
+	it('preserves padded and unpadded binary sizes and stored state through save/open', async () => {
+		const store = createMemoryWorkspaceStore()
+		const author = new WorkspaceManager({ store })
+		const padded = createFile({
+			path: 'padded.bin',
+			content: createBinaryContent('AA==', 'image/png'),
+			state: 'modified',
+		})
+		const unpadded = createFile({
+			path: 'unpadded.bin',
+			content: createBinaryContent('AAA', 'image/webp'),
+			state: 'created',
+		})
+		const workspace = author.add({ id: 'binary', seed: [padded, unpadded] })
+		const snapshot = workspace.snapshot()
+		expect(await author.save('binary')).toBe(true)
+
+		const reader = new WorkspaceManager({ store })
+		const opened = await reader.open('binary')
+
+		expect(opened?.snapshot()).toEqual(snapshot)
+		expect(opened?.file('padded.bin')?.size).toBe(1)
+		expect(opened?.file('padded.bin')?.state).toBe('modified')
+		expect(opened?.file('unpadded.bin')?.size).toBe(2)
+		expect(opened?.file('unpadded.bin')?.state).toBe('created')
+	})
 })
 
 describe('Workspace — snapshot() round-trips (text + binary) through createWorkspaceManager seed', () => {
@@ -400,6 +452,7 @@ describe('Workspace — snapshot() round-trips (text + binary) through createWor
 		const text = createFile({
 			path: 'a.ts',
 			content: createTextContent('const x = 1', 'typescript'),
+			state: 'modified',
 		})
 		const binary = createFile({
 			path: 'icon.png',
@@ -407,10 +460,7 @@ describe('Workspace — snapshot() round-trips (text + binary) through createWor
 		})
 		const original = manager.add({
 			id: 'w',
-			seed: [
-				['a.ts', text],
-				['icon.png', binary],
-			],
+			seed: [text, binary],
 		})
 
 		const snapshot = original.snapshot()
@@ -421,7 +471,7 @@ describe('Workspace — snapshot() round-trips (text + binary) through createWor
 		// (the seed seam + snapshot() are inverse for the serializable shape).
 		const rehydrated = manager.add({
 			id: snapshot.id,
-			seed: snapshot.files.map((file): readonly [string, FileInterface] => [file.path, file]),
+			seed: snapshot.files,
 		})
 		expect(rehydrated.snapshot()).toEqual(snapshot)
 	})

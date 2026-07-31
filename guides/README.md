@@ -2,9 +2,9 @@
 
 The specification index for `@orkestrel/workspace` — a path-keyed map of immutable files with an
 editing surface, a registry of named workspaces with one active selection, and pluggable snapshot
-stores. Each guide is the contract for its module: what the module exports, what each call does,
-and what it deliberately does not do. Parity tests hold these documents and the source to each
-other, so a guide that drifts fails.
+stores with explicit workspace teardown. Each guide is the contract for its module: what the
+module exports, what each call does, and what it deliberately does not do. Parity tests hold these
+documents and the source to each other, so a guide that drifts fails.
 
 ## By concept
 

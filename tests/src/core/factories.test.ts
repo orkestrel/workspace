@@ -24,11 +24,26 @@ describe('createFile', () => {
 		const file = createFile({
 			path: 'icon.png',
 			content: createBinaryContent('AAAA', 'image/png'),
-			state: 'loaded',
+			state: 'modified',
 		})
-		expect(file.state).toBe('loaded')
+		expect(file.state).toBe('modified')
 		expect(file.size).toBe(3)
 		expect(file.lines).toBe(0)
+	})
+
+	it('derives padded and unpadded binary sizes', () => {
+		expect(
+			createFile({ path: 'a.bin', content: createBinaryContent('AA', 'image/gif') }).size,
+		).toBe(1)
+		expect(
+			createFile({ path: 'b.bin', content: createBinaryContent('AAA', 'image/webp') }).size,
+		).toBe(2)
+		expect(
+			createFile({ path: 'c.bin', content: createBinaryContent('AA==', 'image/png') }).size,
+		).toBe(1)
+		expect(
+			createFile({ path: 'd.bin', content: createBinaryContent('AAA=', 'image/jpeg') }).size,
+		).toBe(2)
 	})
 
 	it('returns a plain frozen record that structuredClone preserves', () => {
@@ -67,5 +82,15 @@ describe('createWorkspace', () => {
 		expect(workspace.count).toBe(1)
 		expect(workspace.emitter.destroyed).toBe(false)
 		expect(written).toEqual(['a.ts'])
+	})
+
+	it('reaches constructor seeding through the factory', () => {
+		const seeded = createFile({
+			path: 'seeded.txt',
+			content: createTextContent('seed', 'text'),
+			state: 'modified',
+		})
+		const workspace = createWorkspace({ id: 'seeded', seed: [seeded] })
+		expect(workspace.snapshot()).toEqual({ id: 'seeded', files: [seeded] })
 	})
 })

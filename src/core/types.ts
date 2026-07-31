@@ -1,11 +1,6 @@
 import type { EmitterErrorHandler, EmitterHooks, EmitterInterface } from '@orkestrel/emitter'
 
-/**
- * The binary MIME labels supported by a binary {@link FileContent} arm.
- *
- * Image-consuming callers can use {@link import('./helpers.js').isImage} to recognize image MIME
- * labels without coupling the workspace to a renderer.
- */
+/** The binary MIME labels supported by a binary {@link FileContent} arm. */
 export type BinaryMIME = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
 
 /**
@@ -15,8 +10,8 @@ export type FileContent =
 	| { readonly text: string; readonly language: string }
 	| { readonly data: string; readonly mime: BinaryMIME }
 
-/** The lifecycle state of an immutable file value. */
-export type FileState = 'created' | 'modified' | 'loaded' | 'deleted'
+/** The edit state of an immutable file value. */
+export type FileState = 'created' | 'modified'
 
 /** The caller-supplied data used to create an immutable file. */
 export interface FileInput {
@@ -53,15 +48,15 @@ export interface ReadResult {
 }
 
 /**
- * Search behavior.
+ * Search and replacement behavior.
  *
  * @remarks
- * `regex` treats the query as regular-expression source, `exact` controls case sensitivity, and
- * `limit` caps the result count.
+ * `regex` treats the query as regular-expression source, `sensitive` controls case sensitivity,
+ * and `limit` caps the search or replacement count.
  */
 export interface SearchOptions {
 	readonly regex?: boolean
-	readonly exact?: boolean
+	readonly sensitive?: boolean
 	readonly limit?: number
 }
 
@@ -74,23 +69,9 @@ export interface SearchMatch {
 	readonly content: string
 }
 
-/**
- * Replacement behavior.
- *
- * @remarks
- * `regex` treats the query as regular-expression source, `exact` controls case sensitivity, and
- * `limit` caps the replacement count.
- */
-export interface ReplaceOptions {
-	readonly regex?: boolean
-	readonly exact?: boolean
-	readonly limit?: number
-}
-
-/** The query and tallies produced by a replacement operation. */
+/** The tallies produced by a replacement operation. */
 export interface ReplaceResult {
-	readonly query: string
-	readonly replaced: number
+	readonly occurrences: number
 	readonly files: number
 }
 
@@ -98,7 +79,7 @@ export interface ReplaceResult {
 export type WorkspaceEventMap = {
 	readonly write: readonly [file: FileInterface]
 	readonly remove: readonly [path: string]
-	readonly move: readonly [move: { readonly from: string; readonly to: string }]
+	readonly move: readonly [from: string, to: string]
 	readonly clear: readonly []
 }
 
@@ -106,13 +87,14 @@ export type WorkspaceEventMap = {
  * Workspace construction options.
  *
  * @remarks
- * `id` supplies the registry key, `on` supplies initial event listeners, and `error` receives
- * isolated listener failures.
+ * `id` supplies the registry key, `on` supplies initial event listeners, `error` receives isolated
+ * listener failures, and `seed` hydrates initial immutable files without emitting edits.
  */
 export interface WorkspaceOptions {
 	readonly id?: string
 	readonly on?: EmitterHooks<WorkspaceEventMap>
 	readonly error?: EmitterErrorHandler
+	readonly seed?: Iterable<FileInterface>
 }
 
 /** A JSON-serializable workspace snapshot. */
@@ -168,7 +150,7 @@ export interface WorkspaceInterface {
 	has(path: string): boolean
 	has(paths: readonly string[]): boolean
 	search(query: string, options?: SearchOptions): readonly SearchMatch[]
-	replace(query: string, replacement: string, options?: ReplaceOptions): ReplaceResult
+	replace(query: string, replacement: string, options?: SearchOptions): ReplaceResult
 	write(path: string, content: string): void
 	write(path: string, content: string, range: Range): void
 	write(files: Readonly<Record<string, string>>): void
@@ -178,23 +160,11 @@ export interface WorkspaceInterface {
 	append(files: Readonly<Record<string, string>>): void
 	move(from: string, to: string): boolean
 	move(mapping: Readonly<Record<string, string>>): boolean
-	remove(): void
 	remove(path: string): boolean
 	remove(paths: readonly string[]): boolean
 	clear(): void
 	snapshot(): WorkspaceSnapshot
-}
-
-/**
- * Workspace construction data accepted by a {@link WorkspaceManagerInterface}.
- *
- * `seed` hydrates initial immutable files without emitting edits.
- */
-export interface WorkspaceInput {
-	readonly id?: string
-	readonly on?: EmitterHooks<WorkspaceEventMap>
-	readonly error?: EmitterErrorHandler
-	readonly seed?: Iterable<readonly [string, FileInterface]>
+	destroy(): void
 }
 
 /**
@@ -214,11 +184,11 @@ export interface WorkspaceManagerInterface {
 	readonly active: WorkspaceInterface | undefined
 	workspace(id: string): WorkspaceInterface | undefined
 	workspaces(): readonly WorkspaceInterface[]
-	add(input?: WorkspaceInput): WorkspaceInterface
+	add(options?: WorkspaceOptions): WorkspaceInterface
 	switch(id: string): WorkspaceInterface | undefined
 	open(id: string): Promise<WorkspaceInterface | undefined>
 	save(id: string): Promise<boolean>
-	remove(ids: readonly string[]): boolean
 	remove(id: string): boolean
+	remove(ids: readonly string[]): boolean
 	clear(): void
 }

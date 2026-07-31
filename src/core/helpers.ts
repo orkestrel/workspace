@@ -6,8 +6,8 @@ import type {
 	Range,
 	WorkspaceSnapshot,
 } from './types.js'
-import { isArray, isNumber, isRecord, isString } from '@orkestrel/contract'
-import { EXTENSION_TO_LANGUAGE } from './constants.js'
+import { arrayOf, holds, isNumber, isRecord, isString, literalOf } from '@orkestrel/contract'
+import { EXTENSION_LANGUAGES } from './constants.js'
 
 /**
  * Infer a language tag from the final file extension.
@@ -24,7 +24,7 @@ export function inferLanguage(path: string): string {
 	const dot = path.lastIndexOf('.')
 	if (dot === -1) return 'text'
 	const extension = path.slice(dot + 1).toLowerCase()
-	return EXTENSION_TO_LANGUAGE[extension] ?? 'text'
+	return EXTENSION_LANGUAGES[extension] ?? 'text'
 }
 
 /**
@@ -62,21 +62,6 @@ export function isBinary(
 }
 
 /**
- * Determine whether content is an image binary.
- *
- * @param content - The file content
- * @returns Whether the content has an `image/` MIME
- *
- * @example
- * ```ts
- * isImage({ data: 'AAAA', mime: 'image/png' }) // true
- * ```
- */
-export function isImage(content: FileContent): boolean {
-	return isBinary(content) && content.mime.startsWith('image/')
-}
-
-/**
  * Narrow an unknown value to an immutable file record.
  *
  * @param value - The value to inspect
@@ -88,13 +73,17 @@ export function isImage(content: FileContent): boolean {
  * ```
  */
 export function isFile(value: unknown): value is FileInterface {
-	if (!isRecord(value)) return false
-	if (!isString(value.path) || !isString(value.state)) return false
-	if (!isNumber(value.size) || !isNumber(value.lines)) return false
-	if (!isRecord(value.content)) return false
-	const text = isString(value.content.text) && isString(value.content.language)
-	const binary = isString(value.content.data) && isString(value.content.mime)
-	return text || binary
+	return holds(() => {
+		if (!isRecord(value)) return false
+		if (!isString(value.path) || !literalOf('created', 'modified')(value.state)) return false
+		if (!isNumber(value.size) || !isNumber(value.lines)) return false
+		if (!isRecord(value.content)) return false
+		const text = isString(value.content.text) && isString(value.content.language)
+		const binary =
+			isString(value.content.data) &&
+			literalOf('image/png', 'image/jpeg', 'image/gif', 'image/webp')(value.content.mime)
+		return text || binary
+	})
 }
 
 /**
@@ -109,7 +98,7 @@ export function isFile(value: unknown): value is FileInterface {
  * ```
  */
 export function isWorkspaceSnapshot(value: unknown): value is WorkspaceSnapshot {
-	return isRecord(value) && isString(value.id) && isArray(value.files) && value.files.every(isFile)
+	return holds(() => isRecord(value) && isString(value.id) && arrayOf(isFile)(value.files))
 }
 
 /**
@@ -159,11 +148,10 @@ export function countLines(content: FileContent): number {
  * ```
  */
 export function decodedSize(base64: string): number {
-	if (base64.length === 0) return 0
 	let padding = 0
 	if (base64.endsWith('==')) padding = 2
 	else if (base64.endsWith('=')) padding = 1
-	return Math.floor(base64.length / 4) * 3 - padding
+	return Math.floor((base64.length * 3) / 4) - padding
 }
 
 /**

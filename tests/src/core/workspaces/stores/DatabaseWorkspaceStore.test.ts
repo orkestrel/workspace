@@ -1,5 +1,8 @@
-import { createDatabaseWorkspaceStore } from '@src/core'
-import { createMemoryDriver } from '@orkestrel/database'
+import type { WorkspaceSnapshotRow } from '@src/core'
+import type { TableInterface } from '@orkestrel/database'
+import { createDatabaseWorkspaceStore, DatabaseWorkspaceStore } from '@src/core'
+import { rawShape, stringShape } from '@orkestrel/contract'
+import { createDatabase, createMemoryDriver } from '@orkestrel/database'
 import { describe, expect, it } from 'vitest'
 import { assertWorkspaceStoreContract, buildWorkspaceSnapshot } from '../../../../setup.js'
 
@@ -31,5 +34,66 @@ describe('DatabaseWorkspaceStore — driver overload', () => {
 
 		await store.set(snapshot)
 		expect(await store.get(snapshot.id)).toEqual(snapshot)
+	})
+})
+
+describe('DatabaseWorkspaceStore — invalid stored rows', () => {
+	it('returns undefined for snapshots with invalid state or MIME literals', async () => {
+		const database = createDatabase({
+			driver: createMemoryDriver(),
+			tables: { workspaces: { id: stringShape(), snapshot: rawShape({}) } },
+		})
+		const table: TableInterface<WorkspaceSnapshotRow> = database.table('workspaces')
+		const store = new DatabaseWorkspaceStore(table)
+		const invalidFiles = [
+			{
+				path: 'a.txt',
+				content: { text: 'a', language: 'text' },
+				state: 'archived',
+				size: 1,
+				lines: 1,
+			},
+			{
+				path: 'a.txt',
+				content: { text: 'a', language: 'text' },
+				state: '',
+				size: 1,
+				lines: 1,
+			},
+			{
+				path: 'a.txt',
+				content: { text: 'a', language: 'text' },
+				state: 'loaded',
+				size: 1,
+				lines: 1,
+			},
+			{
+				path: 'a.txt',
+				content: { text: 'a', language: 'text' },
+				state: 'deleted',
+				size: 1,
+				lines: 1,
+			},
+			{
+				path: 'a.bin',
+				content: { data: 'AA==', mime: 'application/pdf' },
+				state: 'created',
+				size: 1,
+				lines: 0,
+			},
+			{
+				path: 'a.bin',
+				content: { data: 'AA==', mime: 'arbitrary' },
+				state: 'created',
+				size: 1,
+				lines: 0,
+			},
+		]
+
+		for (const [index, file] of invalidFiles.entries()) {
+			const id = `invalid-${index}`
+			await table.set({ id, snapshot: { id, files: [file] } })
+			expect(await store.get(id)).toBeUndefined()
+		}
 	})
 })

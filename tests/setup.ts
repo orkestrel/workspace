@@ -101,6 +101,25 @@ export function roundTripJSON<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value))
 }
 
+/** Create a plain record whose named property throws when read. */
+export function createThrowingGetterRecord(property: string): object {
+	return Object.defineProperty({}, property, {
+		enumerable: true,
+		get: throwGetter,
+	})
+}
+
+/** Create a revoked proxy for total-guard tests. */
+export function createRevokedProxy(): object {
+	const revocable = Proxy.revocable({}, {})
+	revocable.revoke()
+	return revocable.proxy
+}
+
+function throwGetter(): never {
+	throw new Error('hostile getter')
+}
+
 /**
  * Build a real workspace snapshot containing text and binary files.
  *
