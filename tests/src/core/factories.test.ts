@@ -34,6 +34,7 @@ describe('createFile', () => {
 	it('returns a plain frozen record that structuredClone preserves', () => {
 		const file = createFile({ path: 'a.txt', content: createTextContent('a', 'text') })
 		expect(Object.getPrototypeOf(file)).toBe(Object.prototype)
+		expect(file.constructor).toBe(Object)
 		expect('id' in file).toBe(false)
 		expect(Object.isFrozen(file)).toBe(true)
 		expect(structuredClone(file)).toEqual(file)
@@ -60,6 +61,7 @@ describe('createWorkspace', () => {
 	it('creates an editable observable workspace', () => {
 		const written: string[] = []
 		const workspace = createWorkspace({ on: { write: (file) => written.push(file.path) } })
+		expect(workspace.count).toBe(0)
 		workspace.write('a.ts', 'const x = 1')
 		expect(workspace.read('a.ts')).toBe('const x = 1')
 		expect(workspace.count).toBe(1)

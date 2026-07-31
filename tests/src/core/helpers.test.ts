@@ -49,14 +49,18 @@ describe('content guards', () => {
 describe('content derivation', () => {
 	it('computes UTF-8 and decoded binary byte sizes', () => {
 		expect(computeSize({ text: '', language: 'text' })).toBe(0)
+		expect(computeSize({ text: 'abc', language: 'text' })).toBe(3)
 		expect(computeSize({ text: 'café', language: 'text' })).toBe(5)
 		expect(computeSize({ text: '😀', language: 'text' })).toBe(4)
 		expect(computeSize({ data: 'AAAA', mime: 'image/png' })).toBe(3)
+		expect(computeSize({ data: '', mime: 'image/png' })).toBe(0)
 	})
 
 	it('counts text lines and no binary lines', () => {
 		expect(countLines({ text: '', language: 'text' })).toBe(0)
 		expect(countLines({ text: 'a', language: 'text' })).toBe(1)
+		expect(countLines({ text: 'a\nb\nc', language: 'text' })).toBe(3)
+		expect(countLines({ text: 'a\n', language: 'text' })).toBe(2)
 		expect(countLines({ text: 'a\nb\n', language: 'text' })).toBe(3)
 		expect(countLines({ data: 'AAAA', mime: 'image/png' })).toBe(0)
 	})
@@ -66,7 +70,7 @@ describe('content derivation', () => {
 		expect(decodedSize('AAAA')).toBe(3)
 		expect(decodedSize('AAA=')).toBe(2)
 		expect(decodedSize('AA==')).toBe(1)
-		for (const payload of ['', 'a', 'ab', 'abc', 'abcd']) {
+		for (const payload of ['', 'a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef']) {
 			expect(decodedSize(btoa(payload))).toBe(payload.length)
 		}
 	})
@@ -76,30 +80,47 @@ describe('range helpers', () => {
 	it('validates positive ordered ranges', () => {
 		expect(isValidRange(rangeOf(1, 1, 2, 1))).toBe(true)
 		expect(isValidRange(rangeOf(1, 1, 1, 1))).toBe(true)
+		expect(isValidRange(rangeOf(1, 3, 1, 5))).toBe(true)
 		expect(isValidRange(rangeOf(2, 1, 1, 1))).toBe(false)
+		expect(isValidRange(rangeOf(1, 5, 1, 3))).toBe(false)
+		expect(isValidRange(rangeOf(0, 1, 1, 1))).toBe(false)
 		expect(isValidRange(rangeOf(1, 0, 1, 1))).toBe(false)
+		expect(isValidRange(rangeOf(1, 1, 1, 0))).toBe(false)
 	})
 
 	it('clamps positions and ranges to their addressed lines', () => {
 		expect(clampPosition('ab\ncd', { line: 9, column: 9 })).toEqual({ line: 2, column: 3 })
+		expect(clampPosition('ab\ncd', { line: 0, column: 0 })).toEqual({ line: 1, column: 1 })
 		expect(clampPosition('ab\ncdef', { line: 1, column: 99 })).toEqual({ line: 1, column: 3 })
 		expect(clampRange('ab\ncd', rangeOf(1, 1, 9, 9))).toEqual(rangeOf(1, 1, 2, 3))
 	})
 
 	it('converts positions to offsets', () => {
 		expect(offsetAt('ab\ncd', { line: 1, column: 1 })).toBe(0)
+		expect(offsetAt('ab\ncd', { line: 1, column: 3 })).toBe(2)
 		expect(offsetAt('ab\ncd', { line: 2, column: 1 })).toBe(3)
+		expect(offsetAt('ab\ncd', { line: 2, column: 3 })).toBe(5)
 		expect(offsetAt('ab\ncd', { line: 9, column: 9 })).toBe(5)
 	})
 
 	it('slices and splices clamped half-open ranges', () => {
 		expect(sliceRange('hello\nworld', rangeOf(1, 1, 1, 6))).toBe('hello')
 		expect(sliceRange('hello\nworld', rangeOf(1, 6, 2, 1))).toBe('\n')
+		expect(sliceRange('hi', rangeOf(1, 1, 9, 9))).toBe('hi')
+		expect(spliceRange('hello', rangeOf(1, 1, 1, 6), 'bye')).toBe('bye')
 		expect(spliceRange('const x = 1', rangeOf(1, 11, 1, 12), '2')).toBe('const x = 2')
 		expect(spliceRange('ac', rangeOf(1, 2, 1, 2), 'b')).toBe('abc')
 	})
 
 	it('assembles coordinates without validation', () => {
+		expect(rangeOf(1, 11, 1, 12)).toEqual({
+			start: { line: 1, column: 11 },
+			end: { line: 1, column: 12 },
+		})
+		expect(rangeOf(2, 3, 5, 7)).toEqual({
+			start: { line: 2, column: 3 },
+			end: { line: 5, column: 7 },
+		})
 		expect(rangeOf(5, 1, 1, 1)).toEqual({
 			start: { line: 5, column: 1 },
 			end: { line: 1, column: 1 },

@@ -130,7 +130,9 @@ export function assertWorkspaceStoreContract(
 			const store = makeStore()
 			const snapshot = build()
 			await store.set(snapshot)
-			expect(await store.get(snapshot.id)).toEqual(snapshot)
+			const stored = await store.get(snapshot.id)
+			expect(stored).toEqual(snapshot)
+			expect(stored?.files.map((file) => file.path)).toEqual(['src/main.ts', 'icon.png'])
 		})
 
 		it('replaces a snapshot under the same id', async () => {
@@ -160,6 +162,8 @@ export function assertWorkspaceStoreContract(
 			const beta = build('beta')
 			await store.set(alpha)
 			await store.set(beta)
+			expect(await store.get('alpha')).toEqual(alpha)
+			expect(await store.get('beta')).toEqual(beta)
 			await store.delete('alpha')
 			expect(await store.get('alpha')).toBeUndefined()
 			expect(await store.get('beta')).toEqual(beta)
