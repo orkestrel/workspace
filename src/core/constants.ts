@@ -1,0 +1,48 @@
+/**
+ * File extensions mapped to language tags for text content.
+ *
+ * Unknown extensions intentionally fall back to `text` in
+ * {@link import('./helpers.js').inferLanguage}.
+ */
+export const EXTENSION_TO_LANGUAGE: Readonly<Record<string, string>> = Object.freeze({
+	ts: 'typescript',
+	tsx: 'typescript',
+	js: 'javascript',
+	jsx: 'javascript',
+	mjs: 'javascript',
+	cjs: 'javascript',
+	json: 'json',
+	md: 'markdown',
+	html: 'html',
+	htm: 'html',
+	css: 'css',
+	scss: 'scss',
+	sass: 'sass',
+	less: 'less',
+	vue: 'vue',
+	svelte: 'svelte',
+	py: 'python',
+	rb: 'ruby',
+	rs: 'rust',
+	go: 'go',
+	java: 'java',
+	kt: 'kotlin',
+	swift: 'swift',
+	c: 'c',
+	cpp: 'cpp',
+	h: 'c',
+	hpp: 'cpp',
+	cs: 'csharp',
+	php: 'php',
+	sql: 'sql',
+	sh: 'bash',
+	bash: 'bash',
+	zsh: 'bash',
+	ps1: 'powershell',
+	yaml: 'yaml',
+	yml: 'yaml',
+	toml: 'toml',
+	xml: 'xml',
+	svg: 'xml',
+	txt: 'text',
+})

@@ -1,168 +1,224 @@
+import type { EmitterErrorHandler, EmitterHooks, EmitterInterface } from '@orkestrel/emitter'
+
 /**
- * A tool definition advertised to a caller.
+ * The binary MIME labels supported by a binary {@link FileContent} arm.
  *
- * @remarks
- * `parameters` is an open JSON Schema record describing the arguments the tool accepts.
+ * Image-consuming callers can use {@link import('./helpers.js').isImage} to recognize image MIME
+ * labels without coupling the workspace to a renderer.
  */
-export interface ToolDefinition {
-	/** The name a caller uses to select the tool. */
-	readonly name: string
-	/** A description of the tool's behavior. */
-	readonly description?: string
-	/** The JSON Schema for the tool's arguments. */
-	readonly parameters?: Readonly<Record<string, unknown>>
+export type BinaryMIME = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
+
+/**
+ * The immutable content of a file: either text with a language tag or base64 data with a MIME.
+ */
+export type FileContent =
+	| { readonly text: string; readonly language: string }
+	| { readonly data: string; readonly mime: BinaryMIME }
+
+/** The lifecycle state of an immutable file value. */
+export type FileState = 'created' | 'modified' | 'loaded' | 'deleted'
+
+/** The caller-supplied data used to create an immutable file. */
+export interface FileInput {
+	readonly path: string
+	readonly content: FileContent
+	readonly state?: FileState
+}
+
+/** An immutable path-addressed file with derived byte and line counts. */
+export interface FileInterface {
+	readonly path: string
+	readonly content: FileContent
+	readonly state: FileState
+	readonly size: number
+	readonly lines: number
+}
+
+/** A 1-based caret position inside text. */
+export interface Position {
+	readonly line: number
+	readonly column: number
+}
+
+/** A half-open text span whose start is inclusive and end is exclusive. */
+export interface Range {
+	readonly start: Position
+	readonly end: Position
+}
+
+/** The content and clamped span returned by a ranged read. */
+export interface ReadResult {
+	readonly content: string
+	readonly range: Range
 }
 
 /**
- * A tool call issued by a caller.
+ * Search behavior.
  *
  * @remarks
- * `id` correlates the call with its later {@link ToolResult}. `arguments` is the
- * caller-supplied arguments record.
+ * `regex` treats the query as regular-expression source, `exact` controls case sensitivity, and
+ * `limit` caps the result count.
  */
-export interface ToolCall {
-	/** The identifier that correlates this call with its result. */
+export interface SearchOptions {
+	readonly regex?: boolean
+	readonly exact?: boolean
+	readonly limit?: number
+}
+
+/** One 1-based search hit and the full line that contains it. */
+export interface SearchMatch {
+	readonly path: string
+	readonly line: number
+	readonly column: number
+	readonly length: number
+	readonly content: string
+}
+
+/**
+ * Replacement behavior.
+ *
+ * @remarks
+ * `regex` treats the query as regular-expression source, `exact` controls case sensitivity, and
+ * `limit` caps the replacement count.
+ */
+export interface ReplaceOptions {
+	readonly regex?: boolean
+	readonly exact?: boolean
+	readonly limit?: number
+}
+
+/** The query and tallies produced by a replacement operation. */
+export interface ReplaceResult {
+	readonly query: string
+	readonly replaced: number
+	readonly files: number
+}
+
+/** Events emitted after workspace mutations complete. */
+export type WorkspaceEventMap = {
+	readonly write: readonly [file: FileInterface]
+	readonly remove: readonly [path: string]
+	readonly move: readonly [move: { readonly from: string; readonly to: string }]
+	readonly clear: readonly []
+}
+
+/**
+ * Workspace construction options.
+ *
+ * @remarks
+ * `id` supplies the registry key, `on` supplies initial event listeners, and `error` receives
+ * isolated listener failures.
+ */
+export interface WorkspaceOptions {
+	readonly id?: string
+	readonly on?: EmitterHooks<WorkspaceEventMap>
+	readonly error?: EmitterErrorHandler
+}
+
+/** A JSON-serializable workspace snapshot. */
+export interface WorkspaceSnapshot {
 	readonly id: string
-	/** The name of the tool to execute. */
-	readonly name: string
-	/** The caller-supplied arguments record. */
-	readonly arguments: Readonly<Record<string, unknown>>
+	readonly files: readonly FileInterface[]
 }
 
-/**
- * The outcome of executing a {@link ToolCall}.
- *
- * @remarks
- * A successful result carries `value`; a failed result carries `error`.
- */
-export interface ToolResult {
-	/** The identifier of the corresponding call. */
-	readonly id: string
-	/** The name of the called tool. */
-	readonly name: string
-	/** The successful return value. */
-	readonly value?: unknown
-	/** The failure message. */
-	readonly error?: string
-}
-
-/**
- * An executable tool: its advertised definition plus its local handler.
- *
- * @remarks
- * `summary`, when present, is advertised in place of the full `description` by a
- * {@link ToolManagerInterface}. The full description remains available on the tool.
- */
-export interface ToolInterface extends ToolDefinition {
-	/** A concise description to advertise in place of the full description. */
-	readonly summary?: string
+/** The asynchronous point-access persistence contract for workspace snapshots. */
+export interface WorkspaceStoreInterface {
 	/**
-	 * Execute the tool.
+	 * Resolve a snapshot.
 	 *
-	 * @param args - The caller-supplied arguments record
-	 * @returns The tool's synchronous or asynchronous result
+	 * @param id - The workspace identifier
+	 * @returns The snapshot, or `undefined` when absent
 	 */
-	execute(args: Readonly<Record<string, unknown>>): Promise<unknown> | unknown
+	get(id: string): Promise<WorkspaceSnapshot | undefined>
+	/**
+	 * Insert or replace a snapshot under its own identifier.
+	 *
+	 * @param snapshot - The snapshot to persist
+	 * @returns A promise that resolves when persistence completes
+	 */
+	set(snapshot: WorkspaceSnapshot): Promise<void>
+	/**
+	 * Delete a snapshot when present.
+	 *
+	 * @param id - The workspace identifier
+	 * @returns A promise that resolves when deletion completes
+	 */
+	delete(id: string): Promise<void>
 }
 
-/**
- * Options for creating an executable tool.
- *
- * @remarks
- * `name` identifies the tool, `description` and `parameters` define what is advertised
- * to a caller, `summary` optionally replaces the advertised description, and `execute`
- * handles the caller-supplied arguments record.
- */
-export interface ToolOptions {
-	/** The name a caller uses to select the tool. */
-	readonly name: string
-	/** The full description of the tool's behavior. */
-	readonly description?: string
-	/** A concise description to advertise in place of the full description. */
-	readonly summary?: string
-	/** The JSON Schema for the tool's arguments. */
-	readonly parameters?: Readonly<Record<string, unknown>>
-	/** The handler that executes the tool. */
-	readonly execute: (args: Readonly<Record<string, unknown>>) => Promise<unknown> | unknown
+/** The database row used to persist one opaque workspace snapshot. */
+export interface WorkspaceSnapshotRow {
+	readonly id: string
+	readonly snapshot: unknown
 }
 
-/**
- * A registry of executable tools with per-call error isolation.
- *
- * @remarks
- * Tools are keyed by name in insertion order. Adding an existing name overwrites its
- * value without changing its position. Every call resolves to a {@link ToolResult};
- * missing tools and thrown handlers become error results. Batch execution preserves
- * input order and isolates each call.
- */
-export interface ToolManagerInterface {
-	/** The number of registered tools. */
+/** The machine-readable failure codes raised by the workspace edit surface. */
+export type WorkspaceErrorCode = 'MODALITY' | 'PATTERN' | 'RANGE'
+
+/** A mutable path-keyed editing surface over immutable file values. */
+export interface WorkspaceInterface {
+	readonly id: string
+	readonly emitter: EmitterInterface<WorkspaceEventMap>
 	readonly count: number
-	/**
-	 * Register one tool.
-	 *
-	 * @param tool - The tool to register
-	 * @returns Nothing
-	 */
-	add(tool: ToolInterface): void
-	/**
-	 * Register a batch of tools.
-	 *
-	 * @param tools - The tools to register
-	 * @returns Nothing
-	 */
-	add(tools: readonly ToolInterface[]): void
-	/**
-	 * Find one registered tool by name.
-	 *
-	 * @param name - The registered tool name
-	 * @returns The tool when found, otherwise `undefined`
-	 */
-	tool(name: string): ToolInterface | undefined
-	/**
-	 * List the registered tools in insertion order.
-	 *
-	 * @returns A new readonly array of registered tools
-	 */
-	tools(): readonly ToolInterface[]
-	/**
-	 * List the definitions advertised to a caller.
-	 *
-	 * @returns A new readonly array of tool definitions
-	 */
-	definitions(): readonly ToolDefinition[]
-	/**
-	 * Execute one call with error isolation.
-	 *
-	 * @param call - The tool call to execute
-	 * @returns The correlated result
-	 */
-	execute(call: ToolCall): Promise<ToolResult>
-	/**
-	 * Execute a batch of calls with per-call error isolation.
-	 *
-	 * @param calls - The tool calls to execute
-	 * @returns The correlated results in input order
-	 */
-	execute(calls: readonly ToolCall[]): Promise<readonly ToolResult[]>
-	/**
-	 * Remove one registered tool.
-	 *
-	 * @param name - The tool name to remove
-	 * @returns Whether the tool was present
-	 */
-	remove(name: string): boolean
-	/**
-	 * Remove a batch of registered tools.
-	 *
-	 * @param names - The tool names to remove
-	 * @returns Whether any named tool was present
-	 */
-	remove(names: readonly string[]): boolean
-	/**
-	 * Remove every registered tool.
-	 *
-	 * @returns Nothing
-	 */
+	file(path: string): FileInterface | undefined
+	files(): readonly FileInterface[]
+	read(path: string): string | undefined
+	read(path: string, range: Range): ReadResult | undefined
+	read(paths: readonly string[]): Readonly<Record<string, string>>
+	has(path: string): boolean
+	has(paths: readonly string[]): boolean
+	search(query: string, options?: SearchOptions): readonly SearchMatch[]
+	replace(query: string, replacement: string, options?: ReplaceOptions): ReplaceResult
+	write(path: string, content: string): void
+	write(path: string, content: string, range: Range): void
+	write(files: Readonly<Record<string, string>>): void
+	prepend(path: string, content: string): void
+	prepend(files: Readonly<Record<string, string>>): void
+	append(path: string, content: string): void
+	append(files: Readonly<Record<string, string>>): void
+	move(from: string, to: string): boolean
+	move(mapping: Readonly<Record<string, string>>): boolean
+	remove(): void
+	remove(path: string): boolean
+	remove(paths: readonly string[]): boolean
+	clear(): void
+	snapshot(): WorkspaceSnapshot
+}
+
+/**
+ * Workspace construction data accepted by a {@link WorkspaceManagerInterface}.
+ *
+ * `seed` hydrates initial immutable files without emitting edits.
+ */
+export interface WorkspaceInput {
+	readonly id?: string
+	readonly on?: EmitterHooks<WorkspaceEventMap>
+	readonly error?: EmitterErrorHandler
+	readonly seed?: Iterable<readonly [string, FileInterface]>
+}
+
+/**
+ * Workspace-manager construction options.
+ *
+ * `on` and `error` become defaults for created workspaces; `store` supplies optional durability.
+ */
+export interface WorkspaceManagerOptions {
+	readonly on?: EmitterHooks<WorkspaceEventMap>
+	readonly error?: EmitterErrorHandler
+	readonly store?: WorkspaceStoreInterface
+}
+
+/** An insertion-ordered workspace registry with an active selection and optional durability. */
+export interface WorkspaceManagerInterface {
+	readonly count: number
+	readonly active: WorkspaceInterface | undefined
+	workspace(id: string): WorkspaceInterface | undefined
+	workspaces(): readonly WorkspaceInterface[]
+	add(input?: WorkspaceInput): WorkspaceInterface
+	switch(id: string): WorkspaceInterface | undefined
+	open(id: string): Promise<WorkspaceInterface | undefined>
+	save(id: string): Promise<boolean>
+	remove(ids: readonly string[]): boolean
+	remove(id: string): boolean
 	clear(): void
 }

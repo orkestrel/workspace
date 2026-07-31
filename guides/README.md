@@ -1,34 +1,31 @@
 # Guides
 
-The concept and directory index for the `@orkestrel/tool` runtime. One concept, one guide: the
-tool — JSON-Schema-described callable functions and the registry that advertises and executes
-them.
+The concept and directory index for `@orkestrel/workspace`, a virtual immutable-file map with an
+editing surface, a registry, and pluggable snapshot stores.
 
 ## By concept
 
-| Concept | Spec                         | Source                    | Tests                                 |
-| ------- | ---------------------------- | ------------------------- | ------------------------------------- |
-| Tool    | [`src/tool.md`](src/tool.md) | [`src/core`](../src/core) | [`tests/src/core`](../tests/src/core) |
+| Concept   | Spec                                   | Source                    | Tests                                 |
+| --------- | -------------------------------------- | ------------------------- | ------------------------------------- |
+| Workspace | [`src/workspace.md`](src/workspace.md) | [`src/core`](../src/core) | [`tests/src/core`](../tests/src/core) |
 
 ## By directory
 
-| Directory  | Guide                        |
-| ---------- | ---------------------------- |
-| `src/core` | [`src/tool.md`](src/tool.md) |
+| Directory  | Guide                                  |
+| ---------- | -------------------------------------- |
+| `src/core` | [`src/workspace.md`](src/workspace.md) |
 
 ## Dependency reference
 
-These mirror the guides of packages this repository consumes; they document those packages, not
-this one.
+These vendored guides document consumed packages rather than this package.
 
-[`src/contract.md`](src/contract.md) — the runtime dependency `@orkestrel/contract`, whose total
-guards back the runtime's overload narrowing and tool-call validation.
-
-[`src/guide.md`](src/guide.md) — the development dependency `@orkestrel/guide`, which powers this
-repository's guide-parity tests.
-
-[`src/scaffold.md`](src/scaffold.md) — the development dependency `@orkestrel/scaffold`, which
-maintains the repository scaffold.
+- [`src/contract.md`](src/contract.md) — total guards and contract shapes from
+  `@orkestrel/contract`.
+- [`src/database.md`](src/database.md) — driver-independent tables from
+  `@orkestrel/database`.
+- [`src/emitter.md`](src/emitter.md) — typed event observation from `@orkestrel/emitter`.
+- [`src/guide.md`](src/guide.md) — documentation parity support from `@orkestrel/guide`.
+- [`src/scaffold.md`](src/scaffold.md) — repository maintenance from `@orkestrel/scaffold`.
 
 ## See also
 

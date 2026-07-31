@@ -1,62 +1,35 @@
-# @orkestrel/tool
+# @orkestrel/workspace
 
-The tool runtime for the `@orkestrel` line.
+A host-independent virtual file workspace for the `@orkestrel` line. It keeps immutable files in
+an insertion-ordered path map, provides text editing and search, manages named workspaces with an
+active selection, and persists snapshots through pluggable stores.
 
-A tool is a callable function described by a JSON Schema: a name, an optional description, an
-optional parameter schema, and the handler that runs it. That is the whole idea — a tool is an
-API call whose shape is data, so whoever calls it can discover it, present it, and invoke it
-without knowing anything about the code behind it. This package ships that shape and the
-registry around it: definitions to advertise, calls to dispatch, results to correlate, and
-per-call error isolation so one bad tool never takes down the run.
-
-Nothing here is model-specific. An agent loop, an MCP bridge, and plain application code are all
-just callers.
+It is deliberately not a filesystem: it performs no disk access and owns no synchronization
+lifecycle. Stores are the durability seam.
 
 ## Install
 
 ```sh
-npm install @orkestrel/tool
+npm install @orkestrel/workspace
 ```
 
 ## Example
 
 ```ts
-import { createTool, createToolManager } from '@orkestrel/tool'
+import { createWorkspaceManager } from '@orkestrel/workspace'
 
-const tools = createToolManager()
-tools.add(
-	createTool({
-		name: 'add',
-		description: 'Add two numeric values and return their sum.',
-		parameters: {
-			type: 'object',
-			properties: {
-				left: { type: 'number' },
-				right: { type: 'number' },
-			},
-			required: ['left', 'right'],
-		},
-		execute: (args) => Number(args.left) + Number(args.right),
-	}),
-)
+const workspaces = createWorkspaceManager()
+const workspace = workspaces.add({ id: 'project' })
 
-tools.definitions() // hand these to whatever chooses the call
+workspace.write('src/main.ts', 'export const answer = 42')
+workspace.append('src/main.ts', '\n')
 
-const result = await tools.execute({
-	id: 'call-1',
-	name: 'add',
-	arguments: { left: 2, right: 3 },
-})
-result.value // 5 — or result.error, when the call failed
+workspace.read('src/main.ts') // 'export const answer = 42\n'
+workspace.search('answer') // one 1-based match
 ```
 
-Handlers may be synchronous or asynchronous. An unknown name or a thrown handler becomes an
-error result instead of escaping, and a batch runs concurrently, stays isolated per call, and
-answers in input order.
-
-Ready-made tools ship in `@orkestrel/toolbox`.
-
-See the [tool guide](guides/src/tool.md) for the complete surface and behavior.
+See the [workspace guide](guides/src/workspace.md) for the complete contract, edit semantics,
+events, and store options.
 
 ## Requirements
 
