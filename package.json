@@ -1,21 +1,21 @@
 {
-	"name": "@orkestrel/tool",
-	"version": "0.0.7",
-	"description": "The tool runtime for the @orkestrel line — JSON-Schema tool definitions, calls, results, executable tools, and a registry with per-call error isolation. Part of the @orkestrel line.",
+	"name": "@orkestrel/workspace",
+	"version": "0.0.1",
+	"description": "A virtual file workspace for the @orkestrel line — path-keyed immutable files, an edit and search surface, registries with an active pointer, and pluggable snapshot stores. Part of the @orkestrel line.",
 	"keywords": [
-		"agent",
-		"llm",
-		"registry",
-		"schema",
-		"tool",
-		"typescript"
+		"edit",
+		"file",
+		"search",
+		"snapshot",
+		"typescript",
+		"workspace"
 	],
-	"homepage": "https://github.com/orkestrel/tool#readme",
-	"bugs": "https://github.com/orkestrel/tool/issues",
+	"homepage": "https://github.com/orkestrel/workspace#readme",
+	"bugs": "https://github.com/orkestrel/workspace/issues",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/orkestrel/tool.git"
+		"url": "git+https://github.com/orkestrel/workspace.git"
 	},
 	"files": [
 		"dist/src",
@@ -63,7 +63,9 @@
 		"prepublishOnly": "npm run format:check && npm run lint:check && npm run check && npm run build && npm test"
 	},
 	"dependencies": {
-		"@orkestrel/contract": "^0.0.8"
+		"@orkestrel/contract": "^0.0.8",
+		"@orkestrel/database": "^0.0.6",
+		"@orkestrel/emitter": "^0.0.4"
 	},
 	"devDependencies": {
 		"@microsoft/api-extractor": "^7.58.12",
