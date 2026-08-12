@@ -8,14 +8,14 @@ documents and the source to each other, so a guide that drifts fails.
 
 ## By concept
 
-| Concept   | Spec                                   | Source                    | Tests                                 |
-| --------- | -------------------------------------- | ------------------------- | ------------------------------------- |
+| Concept   | Spec                           | Source                    | Tests                                 |
+| --------- | ------------------------------ | ------------------------- | ------------------------------------- |
 | Workspace | [`workspace.md`](workspace.md) | [`src/core`](../src/core) | [`tests/src/core`](../tests/src/core) |
 
 ## By directory
 
-| Directory  | Guide                                  |
-| ---------- | -------------------------------------- |
+| Directory  | Guide                          |
+| ---------- | ------------------------------ |
 | `src/core` | [`workspace.md`](workspace.md) |
 
 ## Dependency reference
