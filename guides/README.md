@@ -10,26 +10,26 @@ documents and the source to each other, so a guide that drifts fails.
 
 | Concept   | Spec                                   | Source                    | Tests                                 |
 | --------- | -------------------------------------- | ------------------------- | ------------------------------------- |
-| Workspace | [`src/workspace.md`](src/workspace.md) | [`src/core`](../src/core) | [`tests/src/core`](../tests/src/core) |
+| Workspace | [`workspace.md`](workspace.md) | [`src/core`](../src/core) | [`tests/src/core`](../tests/src/core) |
 
 ## By directory
 
 | Directory  | Guide                                  |
 | ---------- | -------------------------------------- |
-| `src/core` | [`src/workspace.md`](src/workspace.md) |
+| `src/core` | [`workspace.md`](workspace.md) |
 
 ## Dependency reference
 
 These vendored guides document the packages this one consumes. They are mirrors kept for reading,
 not contracts this repository owns.
 
-- [`src/contract.md`](src/contract.md) — total guards and contract shapes from
+- [`contract.md`](contract.md) — total guards and contract shapes from
   `@orkestrel/contract`.
-- [`src/database.md`](src/database.md) — driver-independent tables from
+- [`database.md`](database.md) — driver-independent tables from
   `@orkestrel/database`.
-- [`src/emitter.md`](src/emitter.md) — typed event observation from `@orkestrel/emitter`.
-- [`src/guide.md`](src/guide.md) — documentation parity support from `@orkestrel/guide`.
-- [`src/scaffold.md`](src/scaffold.md) — repository maintenance from `@orkestrel/scaffold`.
+- [`emitter.md`](emitter.md) — typed event observation from `@orkestrel/emitter`.
+- [`guide.md`](guide.md) — documentation parity support from `@orkestrel/guide`.
+- [`scaffold.md`](scaffold.md) — repository maintenance from `@orkestrel/scaffold`.
 
 ## See also
 
