@@ -1,43 +1,13 @@
 import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
 import type { EmitterInterface, EventMap } from '@orkestrel/emitter'
+import type { RecorderInterface } from '@orkestrel/test'
 import { createBinaryContent, createFile, createTextContent, createWorkspace } from '@src/core'
+import { createRecorder } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-
-/** A callback recorder used by event tests. */
-export interface TestRecorderInterface<TArgs extends readonly unknown[]> {
-	readonly calls: readonly TArgs[]
-	readonly count: number
-	readonly handler: (...args: TArgs) => void
-	clear(): void
-}
 
 /** Recorders keyed by the events they observe. */
 export type EmitterRecorders<TMap extends EventMap, TName extends keyof TMap> = {
-	readonly [K in TName]: TestRecorderInterface<TMap[K]>
-}
-
-/**
- * Create a callback recorder.
- *
- * @typeParam TArgs - The callback argument tuple
- * @returns A callback and its recorded calls
- */
-export function createRecorder<TArgs extends readonly unknown[]>(): TestRecorderInterface<TArgs> {
-	const calls: TArgs[] = []
-	return {
-		get calls() {
-			return calls
-		},
-		get count() {
-			return calls.length
-		},
-		handler(...args: TArgs) {
-			calls.push(args)
-		},
-		clear() {
-			calls.length = 0
-		},
-	}
+	readonly [K in TName]: RecorderInterface<TMap[K]>
 }
 
 /**
@@ -45,9 +15,7 @@ export function createRecorder<TArgs extends readonly unknown[]>(): TestRecorder
  *
  * @returns A recorder for error and event pairs
  */
-export function createErrorRecorder(): TestRecorderInterface<
-	readonly [error: unknown, event: string]
-> {
+export function createErrorRecorder(): RecorderInterface<readonly [error: unknown, event: string]> {
 	return createRecorder<readonly [error: unknown, event: string]>()
 }
 
@@ -91,7 +59,10 @@ export function recordEmitterEvents<TMap extends EventMap, TName extends keyof T
 }
 
 /**
- * Round-trip a JSON-serializable value.
+ * Round-trip a value through JSON serialization, for a snapshot type that does not satisfy
+ * `@orkestrel/test`'s `roundTripJSON<T extends JSONValue>` — `WorkspaceSnapshot`'s nested
+ * `FileInterface[]` has no index signature, so the fleet-wide helper's constraint cannot admit it
+ * without a deep reconstruction that would change what the round-trip proves.
  *
  * @typeParam T - The serializable value type
  * @param value - The value to clone
