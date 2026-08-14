@@ -134,16 +134,16 @@ describe('Workspace — ranged write (splice) + clamping', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'abc')
 
-		expect(() => workspace.write('a.ts', 'x', range(2, 1, 1, 1))).toThrowError(
+		expect(() => workspace.write('a.ts', 'x', range(2, 1, 1, 1))).toThrow(
 			expect.objectContaining({ name: 'WorkspaceError', code: 'RANGE' }),
 		)
-		expect(() => workspace.write('a.ts', 'x', range(0, 1, 1, 1))).toThrowError(
+		expect(() => workspace.write('a.ts', 'x', range(0, 1, 1, 1))).toThrow(
 			expect.objectContaining({ code: 'RANGE' }),
 		)
 	})
 
 	it('throws MODALITY on a ranged write to an absent path (no text file to splice)', () => {
-		expect(() => createWorkspace().write('missing.ts', 'x', range(1, 1, 1, 1))).toThrowError(
+		expect(() => createWorkspace().write('missing.ts', 'x', range(1, 1, 1, 1))).toThrow(
 			expect.objectContaining({
 				code: 'MODALITY',
 				message: 'Cannot splice a range of a missing file: missing.ts',
@@ -258,7 +258,7 @@ describe('Workspace — search', () => {
 	})
 
 	it('throws PATTERN on an invalid regex', () => {
-		expect(() => createWorkspace().search('(', { regex: true })).toThrowError(
+		expect(() => createWorkspace().search('(', { regex: true })).toThrow(
 			expect.objectContaining({ name: 'WorkspaceError', code: 'PATTERN' }),
 		)
 	})
@@ -335,7 +335,7 @@ describe('Workspace — replace', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'x')
 
-		expect(() => workspace.replace('(', 'y', { regex: true })).toThrowError(
+		expect(() => workspace.replace('(', 'y', { regex: true })).toThrow(
 			expect.objectContaining({ code: 'PATTERN' }),
 		)
 	})
@@ -472,7 +472,7 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 	it('throws MODALITY for a ranged read of an image file', () => {
 		const workspace = imageWorkspace()
 
-		expect(() => workspace.read('icon.png', range(1, 1, 1, 2))).toThrowError(
+		expect(() => workspace.read('icon.png', range(1, 1, 1, 2))).toThrow(
 			expect.objectContaining({ code: 'MODALITY' }),
 		)
 	})
@@ -480,7 +480,7 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 	it('throws MODALITY for a ranged write to an image file', () => {
 		const workspace = imageWorkspace()
 
-		expect(() => workspace.write('icon.png', 'x', range(1, 1, 1, 2))).toThrowError(
+		expect(() => workspace.write('icon.png', 'x', range(1, 1, 1, 2))).toThrow(
 			expect.objectContaining({
 				code: 'MODALITY',
 				message: 'Cannot splice a range of a binary file: icon.png',
@@ -491,10 +491,10 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 	it('throws MODALITY for prepend / append on an image file', () => {
 		const workspace = imageWorkspace()
 
-		expect(() => workspace.prepend('icon.png', 'x')).toThrowError(
+		expect(() => workspace.prepend('icon.png', 'x')).toThrow(
 			expect.objectContaining({ code: 'MODALITY' }),
 		)
-		expect(() => workspace.append('icon.png', 'x')).toThrowError(
+		expect(() => workspace.append('icon.png', 'x')).toThrow(
 			expect.objectContaining({ code: 'MODALITY' }),
 		)
 	})
