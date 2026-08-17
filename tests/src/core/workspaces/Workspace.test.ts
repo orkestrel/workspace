@@ -7,8 +7,9 @@ import {
 	isWorkspaceError,
 	Workspace,
 } from '@src/core'
+import { createRecorder } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { createErrorRecorder, recordEmitterEvents } from '../../../setup.js'
+import { recordEmitterEvents } from '../../../setup.js'
 
 // The in-memory Workspace edit surface (AGENTS §16 — real data, no mocks). Every edit
 // replaces the immutable File at a path (transitioning created → modified); the modality
@@ -565,7 +566,7 @@ describe('Workspace — emitter events + listener isolation', () => {
 	})
 
 	it('isolates a throwing listener, routing the throw to the error handler', () => {
-		const errors = createErrorRecorder()
+		const errors = createRecorder<readonly [error: unknown, event: string]>()
 		const workspace = createWorkspace({
 			on: {
 				write: () => {

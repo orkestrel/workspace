@@ -1,10 +1,7 @@
 import { createMemoryWorkspaceStore, isWorkspaceSnapshot } from '@src/core'
+import { roundTripJSON } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import {
-	assertWorkspaceStoreContract,
-	buildWorkspaceSnapshot,
-	roundTripJSON,
-} from '../../../../setup.js'
+import { assertWorkspaceStoreContract, buildWorkspaceSnapshot } from '../../../../setup.js'
 
 // The W-d MemoryWorkspaceStore — the in-memory default behind the WorkspaceStoreInterface
 // persistence seam (get / set / delete, async, keyed by a snapshot's own id). It persists the

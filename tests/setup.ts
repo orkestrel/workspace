@@ -11,15 +11,6 @@ export type EmitterRecorders<TMap extends EventMap, TName extends keyof TMap> = 
 }
 
 /**
- * Create a listener-error recorder.
- *
- * @returns A recorder for error and event pairs
- */
-export function createErrorRecorder(): RecorderInterface<readonly [error: unknown, event: string]> {
-	return createRecorder<readonly [error: unknown, event: string]>()
-}
-
-/**
  * Determine whether every requested event has a recorder.
  *
  * @typeParam TMap - The emitter event map
@@ -56,20 +47,6 @@ export function recordEmitterEvents<TMap extends EventMap, TName extends keyof T
 	}
 	if (!isTotal(recorders, events)) throw new Error('missing event recorder')
 	return recorders
-}
-
-/**
- * Round-trip a value through JSON serialization, for a snapshot type that does not satisfy
- * `@orkestrel/test`'s `roundTripJSON<T extends JSONValue>` — `WorkspaceSnapshot`'s nested
- * `FileInterface[]` has no index signature, so the fleet-wide helper's constraint cannot admit it
- * without a deep reconstruction that would change what the round-trip proves.
- *
- * @typeParam T - The serializable value type
- * @param value - The value to clone
- * @returns The parsed JSON clone
- */
-export function roundTripJSON<T>(value: T): T {
-	return JSON.parse(JSON.stringify(value))
 }
 
 /** Create a plain record whose named property throws when read. */
