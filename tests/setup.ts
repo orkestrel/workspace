@@ -137,13 +137,3 @@ export function assertWorkspaceStoreContract(
 		})
 	})
 }
-
-/**
- * Determine whether a Vue file belongs to a private browser application.
- *
- * @param path - The repository-relative path
- * @returns Whether the path is under `app/browser`
- */
-export function isBrowserVuePath(path: string): boolean {
-	return path.replaceAll('\\', '/').startsWith('app/browser/')
-}
