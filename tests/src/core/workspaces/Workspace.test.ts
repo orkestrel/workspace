@@ -1,4 +1,4 @@
-import type { Range } from '@src/core'
+import type { Range, WorkspaceEventMap } from '@src/core'
 import {
 	createBinaryContent,
 	createFile,
@@ -7,9 +7,8 @@ import {
 	isWorkspaceError,
 	Workspace,
 } from '@src/core'
-import { createRecorder } from '@orkestrel/test'
+import { createRecorder, createRecorders } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { recordEmitterEvents } from '../../../setup.js'
 
 // The in-memory Workspace edit surface (AGENTS §16 — real data, no mocks). Every edit
 // replaces the immutable File at a path (transitioning created → modified); the modality
@@ -300,7 +299,7 @@ describe('Workspace — replace', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'aa')
 		workspace.write('b.ts', 'aa')
-		const events = recordEmitterEvents(workspace.emitter, ['write'])
+		const events = createRecorders<WorkspaceEventMap, 'write'>(workspace.emitter, ['write'])
 
 		const result = workspace.replace('a', 'b')
 
@@ -402,7 +401,7 @@ describe('Workspace — move', () => {
 		workspace.write('a.ts', 'alpha')
 		const file = workspace.file('a.ts')
 		const snapshot = workspace.snapshot()
-		const events = recordEmitterEvents(workspace.emitter, ['move'])
+		const events = createRecorders<WorkspaceEventMap, 'move'>(workspace.emitter, ['move'])
 
 		expect(workspace.move('a.ts', 'a.ts')).toBe(false)
 		expect(workspace.file('a.ts')).toBe(file)
@@ -531,7 +530,10 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 describe('Workspace — emitter events + listener isolation', () => {
 	it('emits write / remove / move / clear after the mutation', () => {
 		const workspace = createWorkspace()
-		const events = recordEmitterEvents(workspace.emitter, ['write', 'remove', 'move', 'clear'])
+		const events = createRecorders<WorkspaceEventMap, 'write' | 'remove' | 'move' | 'clear'>(
+			workspace.emitter,
+			['write', 'remove', 'move', 'clear'],
+		)
 
 		workspace.write('a.ts', 'x') // write
 		workspace.move('a.ts', 'b.ts') // move
@@ -548,7 +550,10 @@ describe('Workspace — emitter events + listener isolation', () => {
 	it('emits clear from clear(), the canonical emptied signal', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'x')
-		const events = recordEmitterEvents(workspace.emitter, ['clear', 'remove'])
+		const events = createRecorders<WorkspaceEventMap, 'clear' | 'remove'>(workspace.emitter, [
+			'clear',
+			'remove',
+		])
 
 		workspace.clear()
 
@@ -558,7 +563,7 @@ describe('Workspace — emitter events + listener isolation', () => {
 
 	it('does not emit remove when the path was absent', () => {
 		const workspace = createWorkspace()
-		const events = recordEmitterEvents(workspace.emitter, ['remove'])
+		const events = createRecorders<WorkspaceEventMap, 'remove'>(workspace.emitter, ['remove'])
 
 		expect(workspace.remove('missing.ts')).toBe(false)
 

@@ -1,53 +1,6 @@
 import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
-import type { EmitterInterface, EventMap } from '@orkestrel/emitter'
-import type { RecorderInterface } from '@orkestrel/test'
 import { createBinaryContent, createFile, createTextContent, createWorkspace } from '@src/core'
-import { createRecorder } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-
-/** Recorders keyed by the events they observe. */
-export type EmitterRecorders<TMap extends EventMap, TName extends keyof TMap> = {
-	readonly [K in TName]: RecorderInterface<TMap[K]>
-}
-
-/**
- * Determine whether every requested event has a recorder.
- *
- * @typeParam TMap - The emitter event map
- * @typeParam TName - The event-name subset
- * @param recorders - The partial recorder map
- * @param events - The required event names
- * @returns Whether the map contains every requested event
- */
-export function isTotal<TMap extends EventMap, TName extends keyof TMap>(
-	recorders: Partial<EmitterRecorders<TMap, TName>>,
-	events: readonly TName[],
-): recorders is EmitterRecorders<TMap, TName> {
-	return events.every((name) => recorders[name] !== undefined)
-}
-
-/**
- * Subscribe one recorder to each requested emitter event.
- *
- * @typeParam TMap - The emitter event map
- * @typeParam TName - The event-name subset
- * @param emitter - The emitter to observe
- * @param events - The event names to record
- * @returns Recorders keyed by event name
- */
-export function recordEmitterEvents<TMap extends EventMap, TName extends keyof TMap>(
-	emitter: EmitterInterface<TMap>,
-	events: readonly TName[],
-): EmitterRecorders<TMap, TName> {
-	const recorders: Partial<EmitterRecorders<TMap, TName>> = {}
-	for (const name of events) {
-		const recorder = createRecorder<TMap[typeof name]>()
-		emitter.on(name, recorder.handler)
-		recorders[name] = recorder
-	}
-	if (!isTotal(recorders, events)) throw new Error('missing event recorder')
-	return recorders
-}
 
 /** Create a plain record whose named property throws when read. */
 export function createThrowingGetterRecord(property: string): object {
