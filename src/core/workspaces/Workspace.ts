@@ -113,7 +113,7 @@ export class Workspace implements WorkspaceInterface {
 	has(path: string): boolean
 	has(paths: readonly string[]): boolean
 	has(path: string | readonly string[]): boolean {
-		if (isArray(path)) return path.some((one) => this.#files.has(one))
+		if (isArray(path)) return path.every((one) => this.#files.has(one))
 		return this.#files.has(path)
 	}
 
@@ -180,12 +180,12 @@ export class Workspace implements WorkspaceInterface {
 			for (const [one, text] of Object.entries(path)) this.#write(one, text)
 			return
 		}
-		const text = content ?? ''
+		if (content === undefined) return
 		if (!range) {
-			this.#write(path, text)
+			this.#write(path, content)
 			return
 		}
-		this.#splice(path, text, range)
+		this.#splice(path, content, range)
 	}
 
 	prepend(path: string, content: string): void
@@ -195,7 +195,8 @@ export class Workspace implements WorkspaceInterface {
 			for (const [one, text] of Object.entries(path)) this.#prepend(one, text)
 			return
 		}
-		this.#prepend(path, content ?? '')
+		if (content === undefined) return
+		this.#prepend(path, content)
 	}
 
 	append(path: string, content: string): void
@@ -205,29 +206,31 @@ export class Workspace implements WorkspaceInterface {
 			for (const [one, text] of Object.entries(path)) this.#append(one, text)
 			return
 		}
-		this.#append(path, content ?? '')
+		if (content === undefined) return
+		this.#append(path, content)
 	}
 
 	move(from: string, to: string): boolean
 	move(mapping: Readonly<Record<string, string>>): boolean
 	move(from: string | Readonly<Record<string, string>>, to?: string): boolean {
 		if (isRecord(from)) {
-			let moved = false
+			let moved = true
 			for (const [one, target] of Object.entries(from)) {
-				if (this.#move(one, target)) moved = true
+				if (!this.#move(one, target)) moved = false
 			}
 			return moved
 		}
-		return this.#move(from, to ?? '')
+		if (to === undefined) return false
+		return this.#move(from, to)
 	}
 
 	remove(path: string): boolean
 	remove(paths: readonly string[]): boolean
 	remove(path: string | readonly string[]): boolean {
 		if (isArray(path)) {
-			let removed = false
+			let removed = true
 			for (const one of path) {
-				if (this.#remove(one)) removed = true
+				if (!this.#remove(one)) removed = false
 			}
 			return removed
 		}

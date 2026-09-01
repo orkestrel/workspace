@@ -145,13 +145,23 @@ describe('WorkspaceManager — remove (§9.2) / clear', () => {
 		expect(manager.workspace('b')).toBeDefined()
 	})
 
-	it('remove(ids[]) drops a batch — true when ANY was removed', () => {
+	it('remove(ids[]) drops a batch — true only when EVERY id was removed', () => {
 		const manager = new WorkspaceManager()
 		manager.add({ id: 'a' })
 		manager.add({ id: 'b' })
 		manager.add({ id: 'c' })
 
-		expect(manager.remove(['a', 'c', 'ghost'])).toBe(true)
+		expect(manager.remove(['a', 'c'])).toBe(true)
+		expect(manager.count).toBe(1)
+		expect(manager.workspaces().map((one) => one.id)).toEqual(['b'])
+	})
+
+	it('remove(ids[]) reports false for one absent id while dropping the registered ones', () => {
+		const manager = new WorkspaceManager()
+		manager.add({ id: 'a' })
+		manager.add({ id: 'b' })
+
+		expect(manager.remove(['a', 'ghost'])).toBe(false)
 		expect(manager.count).toBe(1)
 		expect(manager.workspaces().map((one) => one.id)).toEqual(['b'])
 	})

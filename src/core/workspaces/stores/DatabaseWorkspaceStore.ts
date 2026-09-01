@@ -4,7 +4,7 @@ import type {
 	WorkspaceStoreInterface,
 } from '../../types.js'
 import type { TableInterface } from '@orkestrel/database'
-import { isWorkspaceSnapshot } from '../../helpers.js'
+import { isWorkspaceSnapshot } from '../../validators.js'
 
 /**
  * A workspace snapshot store over a database table.

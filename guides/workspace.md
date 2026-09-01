@@ -76,24 +76,32 @@ package can answer, it answers with a value.
 The pure leaves, from [`helpers.ts`](../src/core/helpers.ts). Each one is exported and tested
 on its own, and the classes compose them rather than hiding them.
 
-| Name                  | Kind     | Signature                                                     | Behavior                                                                       |
-| --------------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `inferLanguage`       | function | `(path: string) => string`                                    | Maps the final extension to a language tag, falling back to `text`.            |
-| `isText`              | function | `(content: FileContent) => boolean`                           | Narrows content to its text arm.                                               |
-| `isBinary`            | function | `(content: FileContent) => boolean`                           | Narrows content to its binary arm.                                             |
-| `isFile`              | function | `(value: unknown) => value is FileInterface`                  | Total guard for a file value arriving from outside the process.                |
-| `isWorkspaceSnapshot` | function | `(value: unknown) => value is WorkspaceSnapshot`              | Total guard for a snapshot read back from a store.                             |
-| `computeSize`         | function | `(content: FileContent) => number`                            | UTF-8 bytes for text, decoded bytes for binary.                                |
-| `countLines`          | function | `(content: FileContent) => number`                            | Text lines; zero for empty text and for binary content.                        |
-| `decodedSize`         | function | `(base64: string) => number`                                  | The decoded length of base64, computed arithmetically rather than by decoding. |
-| `isValidRange`        | function | `(range: Range) => boolean`                                   | Whether both positions are positive and ordered.                               |
-| `clampPosition`       | function | `(text: string, position: Position) => Position`              | Pulls a position inside the text's bounds.                                     |
-| `clampRange`          | function | `(text: string, range: Range) => Range`                       | Clamps both endpoints.                                                         |
-| `offsetAt`            | function | `(text: string, position: Position) => number`                | Converts a 1-based position to a bounded string offset.                        |
-| `sliceRange`          | function | `(text: string, range: Range) => string`                      | Reads a clamped half-open span.                                                |
-| `spliceRange`         | function | `(text: string, range: Range, replacement: string) => string` | Replaces a clamped half-open span.                                             |
-| `rangeOf`             | function | `(fromLine, fromColumn, toLine, toColumn) => Range`           | Builds a range from four flat coordinates, without validating it.              |
-| `escapeRegExp`        | function | `(value: string) => string`                                   | Escapes metacharacters so literal text can be used as pattern source.          |
+| Name            | Kind     | Signature                                                     | Behavior                                                                       |
+| --------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `inferLanguage` | function | `(path: string) => string`                                    | Maps the final extension to a language tag, falling back to `text`.            |
+| `isText`        | function | `(content: FileContent) => boolean`                           | Narrows content to its text arm.                                               |
+| `isBinary`      | function | `(content: FileContent) => boolean`                           | Narrows content to its binary arm.                                             |
+| `computeSize`   | function | `(content: FileContent) => number`                            | UTF-8 bytes for text, decoded bytes for binary.                                |
+| `countLines`    | function | `(content: FileContent) => number`                            | Text lines; zero for empty text and for binary content.                        |
+| `decodedSize`   | function | `(base64: string) => number`                                  | The decoded length of base64, computed arithmetically rather than by decoding. |
+| `isValidRange`  | function | `(range: Range) => boolean`                                   | Whether both positions are positive and ordered.                               |
+| `clampPosition` | function | `(text: string, position: Position) => Position`              | Pulls a position inside the text's bounds.                                     |
+| `clampRange`    | function | `(text: string, range: Range) => Range`                       | Clamps both endpoints.                                                         |
+| `offsetAt`      | function | `(text: string, position: Position) => number`                | Converts a 1-based position to a bounded string offset.                        |
+| `sliceRange`    | function | `(text: string, range: Range) => string`                      | Reads a clamped half-open span.                                                |
+| `spliceRange`   | function | `(text: string, range: Range, replacement: string) => string` | Replaces a clamped half-open span.                                             |
+| `rangeOf`       | function | `(fromLine, fromColumn, toLine, toColumn) => Range`           | Builds a range from four flat coordinates, without validating it.              |
+| `escapeRegExp`  | function | `(value: string) => string`                                   | Escapes metacharacters so literal text can be used as pattern source.          |
+
+### Validators
+
+The total guards, from [`validators.ts`](../src/core/validators.ts). Each narrows an `unknown`
+value arriving from outside the process without throwing on a hostile property access.
+
+| Name                  | Kind     | Signature                                        | Behavior                                            |
+| --------------------- | -------- | ------------------------------------------------ | --------------------------------------------------- |
+| `isFile`              | function | `(value: unknown) => value is FileInterface`     | Total guard for a file value arriving from outside. |
+| `isWorkspaceSnapshot` | function | `(value: unknown) => value is WorkspaceSnapshot` | Total guard for a snapshot read back from a store.  |
 
 ### Factories
 
@@ -157,30 +165,30 @@ The public call-signature members of each behavioral interface, one table per in
 | `file`     | `FileInterface \| undefined`    | Finds the file value at one path.                                                                 |
 | `files`    | `readonly FileInterface[]`      | Lists every file in insertion order.                                                              |
 | `read`     | text, `ReadResult`, or a record | Reads whole text, a clamped range, or a batch; binary content is omitted from the first and last. |
-| `has`      | `boolean`                       | Tests one path, or whether any path in a batch is present.                                        |
+| `has`      | `boolean`                       | Tests one path, or whether every path in a batch is present.                                      |
 | `search`   | `readonly SearchMatch[]`        | Scans text files in insertion order, then line order, skipping binary content.                    |
 | `replace`  | `ReplaceResult`                 | Rewrites matching text files and reports occurrence and file tallies.                             |
 | `write`    | `void`                          | Writes whole text, splices a range, or applies a record batch.                                    |
 | `prepend`  | `void`                          | Puts text before existing content, for one path or a record batch.                                |
 | `append`   | `void`                          | Puts text after existing content, for one path or a record batch.                                 |
-| `move`     | `boolean`                       | Re-keys one file or a mapping batch, reporting whether anything moved.                            |
-| `remove`   | `boolean`                       | Drops one path or a batch of paths, reporting whether anything was removed.                       |
+| `move`     | `boolean`                       | Re-keys one file or a mapping batch, true only when every entry moved.                            |
+| `remove`   | `boolean`                       | Drops one path or a batch of paths, true only when every path was removed.                        |
 | `clear`    | `void`                          | Empties the workspace and emits `clear`.                                                          |
 | `snapshot` | `WorkspaceSnapshot`             | Projects the id and a flat file list into a serializable value.                                   |
 | `destroy`  | `void`                          | Tears down observation while leaving the editing surface functional.                              |
 
 #### `WorkspaceManagerInterface`
 
-| Method       | Returns                                    | Behavior                                                                    |
-| ------------ | ------------------------------------------ | --------------------------------------------------------------------------- |
-| `workspace`  | `WorkspaceInterface \| undefined`          | Finds one registered workspace by id.                                       |
-| `workspaces` | `readonly WorkspaceInterface[]`            | Lists registered workspaces in insertion order.                             |
-| `add`        | `WorkspaceInterface`                       | Creates and registers a workspace, activating it when none is active yet.   |
-| `switch`     | `WorkspaceInterface \| undefined`          | Re-points the active selection when the id is registered.                   |
-| `open`       | `Promise<WorkspaceInterface \| undefined>` | Activates a registered workspace, or hydrates one from a stored snapshot.   |
-| `save`       | `Promise<boolean>`                         | Persists a registered workspace's snapshot when a store is configured.      |
-| `remove`     | `boolean`                                  | Drops one id or a batch of ids, clearing the selection when it was removed. |
-| `clear`      | `void`                                     | Empties the registry and the active selection.                              |
+| Method       | Returns                                    | Behavior                                                                  |
+| ------------ | ------------------------------------------ | ------------------------------------------------------------------------- |
+| `workspace`  | `WorkspaceInterface \| undefined`          | Finds one registered workspace by id.                                     |
+| `workspaces` | `readonly WorkspaceInterface[]`            | Lists registered workspaces in insertion order.                           |
+| `add`        | `WorkspaceInterface`                       | Creates and registers a workspace, activating it when none is active yet. |
+| `switch`     | `WorkspaceInterface \| undefined`          | Re-points the active selection when the id is registered.                 |
+| `open`       | `Promise<WorkspaceInterface \| undefined>` | Activates a registered workspace, or hydrates one from a stored snapshot. |
+| `save`       | `Promise<boolean>`                         | Persists a registered workspace's snapshot when a store is configured.    |
+| `remove`     | `boolean`                                  | Drops one id or a batch, true only when every id was registered.          |
+| `clear`      | `void`                                     | Empties the registry and the active selection.                            |
 
 #### `WorkspaceStoreInterface`
 
@@ -295,7 +303,8 @@ workspace.read('a.ts') // 'const x = 1\nconst y = 2'
 workspace.read('a.ts', rangeOf(1, 1, 1, 6)) // { content: 'const', range: … }
 workspace.read(['a.ts', 'missing.ts']) // { 'a.ts': … } — absent paths are omitted
 workspace.has('a.ts') // true
-workspace.has(['missing.ts', 'b.ts']) // true — any present
+workspace.has(['a.ts', 'b.ts']) // true — every path present
+workspace.has(['missing.ts', 'b.ts']) // false — a batch answers true only when all are present
 
 workspace.search('const') // three matches, a.ts before b.ts, line order within each
 workspace.search('[a-z]\\d', { regex: true }) // pattern source instead of literal text
@@ -334,7 +343,7 @@ workspace.move('ghost.ts', 'x.ts') // false — nothing to re-key
 workspace.snapshot() // { id: 'project', files: [ … ] } — plain, serializable
 
 workspace.remove('src/new.ts') // true
-workspace.remove(['docs/draft.md', 'ghost.ts']) // true — any one removal counts
+workspace.remove(['docs/draft.md', 'ghost.ts']) // false — 'ghost.ts' was never there
 workspace.clear() // empties the workspace and emits clear
 ```
 
@@ -345,9 +354,11 @@ that source slot, so the file count drops by one. A missing source is not a fail
 `move` reports `false` and changes nothing. Moving a path to itself is the same exact no-op: it
 returns `false`, preserves the value and order, and emits nothing.
 
-`remove` mirrors that leniency, reporting whether anything was actually dropped rather than
-throwing over an absent path. `clear()` owns emptying the workspace and sends one canonical
-`clear` event, never a burst of per-path removals.
+`remove` mirrors that leniency, answering with a value rather than throwing over an absent path.
+Each batch form — `has(paths)`, `move(mapping)`, and `remove(paths)` — applies to every entry it
+can and reports `true` only when all of them succeeded, so one absent path turns the batch's answer
+`false` while the present paths still move or drop. `clear()` owns emptying the workspace and sends
+one canonical `clear` event, never a burst of per-path removals.
 
 `snapshot()` is the boundary between the live surface and everything durable: an id and a flat file
 list, holding the same frozen values the map holds. Feed those files back through a workspace's
@@ -408,7 +419,7 @@ manager.switch('review') // returns the workspace and re-points active
 manager.switch('ghost') // undefined — active is left alone
 
 manager.remove('review') // true — and active clears, because the active one went
-manager.remove(['scratch', 'ghost']) // true — any one removal counts
+manager.remove(['scratch', 'ghost']) // false — 'ghost' was never registered, but 'scratch' still goes
 manager.clear() // empty registry, no selection
 ```
 

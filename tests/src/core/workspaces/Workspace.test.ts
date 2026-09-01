@@ -204,13 +204,15 @@ describe('Workspace — batch write / read / has', () => {
 		expect(workspace.read(['a.ts', 'missing.ts'])).toEqual({ 'a.ts': 'x' })
 	})
 
-	it('reports membership for a single path and any-present for a batch', () => {
+	it('reports membership for a single path and all-present for a batch', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'x')
+		workspace.write('b.ts', 'y')
 
 		expect(workspace.has('a.ts')).toBe(true)
 		expect(workspace.has('missing.ts')).toBe(false)
-		expect(workspace.has(['a.ts', 'missing.ts'])).toBe(true) // any present
+		expect(workspace.has(['a.ts', 'b.ts'])).toBe(true) // every path present
+		expect(workspace.has(['a.ts', 'missing.ts'])).toBe(false) // one absent fails the batch
 		expect(workspace.has(['missing.ts', 'gone.ts'])).toBe(false)
 	})
 })
@@ -369,7 +371,7 @@ describe('Workspace — move', () => {
 		expect(createWorkspace().move('missing.ts', 'x.ts')).toBe(false)
 	})
 
-	it('applies a mapping batch, true when any moved', () => {
+	it('applies a mapping batch, true only when every entry moved', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'A')
 		workspace.write('b.ts', 'B')
@@ -379,6 +381,15 @@ describe('Workspace — move', () => {
 		expect(workspace.read('y.ts')).toBe('B')
 
 		expect(workspace.move({ 'gone.ts': 'z.ts' })).toBe(false) // none moved
+	})
+
+	it('reports false for a partial mapping batch while still moving what it can', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'A')
+
+		expect(workspace.move({ 'a.ts': 'x.ts', 'gone.ts': 'z.ts' })).toBe(false)
+		expect(workspace.read('x.ts')).toBe('A') // the present entry still moved
+		expect(workspace.has('a.ts')).toBe(false)
 	})
 
 	it('preserves the source slot across files, snapshots, search, and replacement', () => {
@@ -420,12 +431,16 @@ describe('Workspace — remove / clear', () => {
 		expect(workspace.remove('a.ts')).toBe(false) // already gone
 	})
 
-	it('removes a batch, true when any was removed', () => {
+	it('removes a batch, true only when every path was removed', () => {
 		const workspace = createWorkspace()
 		workspace.write({ 'a.ts': 'A', 'b.ts': 'B' })
 
-		expect(workspace.remove(['a.ts', 'missing.ts'])).toBe(true) // a.ts dropped
-		expect(workspace.count).toBe(1)
+		expect(workspace.remove(['a.ts', 'b.ts'])).toBe(true) // every path dropped
+		expect(workspace.count).toBe(0)
+
+		workspace.write({ 'a.ts': 'A', 'b.ts': 'B' })
+		expect(workspace.remove(['a.ts', 'missing.ts'])).toBe(false) // one absent fails the batch
+		expect(workspace.count).toBe(1) // a.ts still dropped
 		expect(workspace.remove(['gone.ts'])).toBe(false)
 	})
 

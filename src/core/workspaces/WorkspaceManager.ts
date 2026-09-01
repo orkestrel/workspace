@@ -105,9 +105,9 @@ export class WorkspaceManager implements WorkspaceManagerInterface {
 	remove(ids: readonly string[]): boolean
 	remove(ids: string | readonly string[]): boolean {
 		if (isArray(ids)) {
-			let removed = false
+			let removed = true
 			for (const id of ids) {
-				if (this.#drop(id)) removed = true
+				if (!this.#drop(id)) removed = false
 			}
 			return removed
 		}
