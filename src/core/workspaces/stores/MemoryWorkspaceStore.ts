@@ -1,7 +1,7 @@
 import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '../../types.js'
 
 /**
- * A process-local workspace snapshot store.
+ * Holds workspace snapshots in the current process.
  *
  * @example
  * ```ts

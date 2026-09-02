@@ -2,10 +2,10 @@ import type { FileInterface, WorkspaceSnapshot } from './types.js'
 import { arrayOf, holds, isNumber, isRecord, isString, literalOf } from '@orkestrel/contract'
 
 /**
- * Narrow an unknown value to an immutable file record.
+ * Narrows an unknown value to an immutable file record.
  *
  * @param value - The value to inspect
- * @returns Whether the value has the file shape
+ * @returns True if the value has the file shape; false otherwise
  *
  * @example
  * ```ts
@@ -27,10 +27,10 @@ export function isFile(value: unknown): value is FileInterface {
 }
 
 /**
- * Narrow an unknown value to a workspace snapshot.
+ * Narrows an unknown value to a workspace snapshot.
  *
  * @param value - The value read from a persistence boundary
- * @returns Whether the value has the workspace snapshot shape
+ * @returns True if the value has the workspace snapshot shape; false otherwise
  *
  * @example
  * ```ts

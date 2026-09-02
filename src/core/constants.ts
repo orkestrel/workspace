@@ -1,5 +1,5 @@
 /**
- * File extensions mapped to language tags for text content.
+ * Maps file extensions to language tags for text content.
  *
  * Unknown extensions intentionally fall back to `text` in
  * {@link import('./helpers.js').inferLanguage}.

@@ -1,26 +1,27 @@
 import type { EmitterErrorHandler, EmitterHooks, EmitterInterface } from '@orkestrel/emitter'
 
-/** The binary MIME labels supported by a binary {@link FileContent} arm. */
+/** Names the MIME labels a binary {@link FileContent} arm supports. */
 export type BinaryMIME = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
 
 /**
- * The immutable content of a file: either text with a language tag or a base64 string with a MIME.
+ * Holds a file's immutable content: either text with a language tag or a base64 string with a
+ * MIME.
  */
 export type FileContent =
 	| { readonly text: string; readonly language: string }
 	| { readonly base64: string; readonly mime: BinaryMIME }
 
-/** The edit state of an immutable file value. */
+/** Names the edit state of an immutable file value. */
 export type FileState = 'created' | 'modified'
 
-/** The caller-supplied values used to create an immutable file. */
+/** Carries the caller-supplied values used to create an immutable file. */
 export interface FileInput {
 	readonly path: string
 	readonly content: FileContent
 	readonly state?: FileState
 }
 
-/** An immutable path-addressed file with derived byte and line counts. */
+/** Represents an immutable path-addressed file with derived byte and line counts. */
 export interface FileInterface {
 	readonly path: string
 	readonly content: FileContent
@@ -29,26 +30,26 @@ export interface FileInterface {
 	readonly lines: number
 }
 
-/** A 1-based caret position inside text. */
+/** Locates a 1-based caret inside text. */
 export interface Position {
 	readonly line: number
 	readonly column: number
 }
 
-/** A half-open text span whose start is inclusive and end is exclusive. */
+/** Represents a half-open text span whose start is inclusive and end is exclusive. */
 export interface Range {
 	readonly start: Position
 	readonly end: Position
 }
 
-/** The content and clamped span returned by a ranged read. */
+/** Carries the content and clamped span returned by a ranged read. */
 export interface ReadResult {
 	readonly content: string
 	readonly range: Range
 }
 
 /**
- * Search and replacement behavior.
+ * Configures search and replacement behavior.
  *
  * @remarks
  * `regex` treats the query as regular-expression source, `sensitive` controls case sensitivity,
@@ -60,7 +61,7 @@ export interface SearchOptions {
 	readonly limit?: number
 }
 
-/** One 1-based search hit and the full line that contains it. */
+/** Reports one 1-based search hit and the full line that contains it. */
 export interface SearchMatch {
 	readonly path: string
 	readonly line: number
@@ -69,13 +70,13 @@ export interface SearchMatch {
 	readonly content: string
 }
 
-/** The tallies produced by a replacement operation. */
+/** Carries the tallies produced by a replacement operation. */
 export interface ReplaceResult {
 	readonly occurrences: number
 	readonly files: number
 }
 
-/** Events emitted after workspace mutations complete. */
+/** Names the events emitted after workspace mutations complete. */
 export type WorkspaceEventMap = {
 	readonly write: readonly [file: FileInterface]
 	readonly remove: readonly [path: string]
@@ -84,7 +85,7 @@ export type WorkspaceEventMap = {
 }
 
 /**
- * Workspace construction options.
+ * Configures a workspace at construction.
  *
  * @remarks
  * `id` supplies the registry key, `on` supplies initial event listeners, `error` receives isolated
@@ -97,30 +98,30 @@ export interface WorkspaceOptions {
 	readonly seed?: Iterable<FileInterface>
 }
 
-/** A JSON-serializable workspace snapshot. */
+/** Represents a workspace's stored state in JSON-serializable form. */
 export interface WorkspaceSnapshot {
 	readonly id: string
 	readonly files: readonly FileInterface[]
 }
 
-/** The asynchronous point-access persistence contract for workspace snapshots. */
+/** Persists workspace snapshots through an asynchronous point-access contract. */
 export interface WorkspaceStoreInterface {
 	/**
-	 * Resolve a snapshot.
+	 * Resolves a snapshot.
 	 *
 	 * @param id - The workspace identifier
 	 * @returns The snapshot, or `undefined` when absent
 	 */
 	get(id: string): Promise<WorkspaceSnapshot | undefined>
 	/**
-	 * Insert or replace a snapshot under its own identifier.
+	 * Inserts or replaces a snapshot under its own identifier.
 	 *
 	 * @param snapshot - The snapshot to persist
 	 * @returns A promise that resolves when persistence completes
 	 */
 	set(snapshot: WorkspaceSnapshot): Promise<void>
 	/**
-	 * Delete a snapshot when present.
+	 * Deletes a snapshot when present.
 	 *
 	 * @param id - The workspace identifier
 	 * @returns A promise that resolves when deletion completes
@@ -128,16 +129,16 @@ export interface WorkspaceStoreInterface {
 	delete(id: string): Promise<void>
 }
 
-/** The database row used to persist one opaque workspace snapshot. */
+/** Represents the database row used to persist one opaque workspace snapshot. */
 export interface WorkspaceSnapshotRow {
 	readonly id: string
 	readonly snapshot: unknown
 }
 
-/** The machine-readable failure codes raised by the workspace edit surface. */
+/** Names the machine-readable failure codes raised by the workspace edit surface. */
 export type WorkspaceErrorCode = 'MODALITY' | 'PATTERN' | 'RANGE'
 
-/** A mutable path-keyed editing surface over immutable file values. */
+/** Represents a mutable path-keyed editing surface over immutable file values. */
 export interface WorkspaceInterface {
 	readonly id: string
 	readonly emitter: EmitterInterface<WorkspaceEventMap>
@@ -168,7 +169,7 @@ export interface WorkspaceInterface {
 }
 
 /**
- * Workspace-manager construction options.
+ * Configures a workspace registry at construction.
  *
  * `on` and `error` become defaults for created workspaces; `store` supplies optional durability.
  */
@@ -178,7 +179,10 @@ export interface WorkspaceManagerOptions {
 	readonly store?: WorkspaceStoreInterface
 }
 
-/** An insertion-ordered workspace registry with an active selection and optional durability. */
+/**
+ * Represents an insertion-ordered workspace registry with an active selection and optional
+ * durability.
+ */
 export interface WorkspaceManagerInterface {
 	readonly count: number
 	readonly active: WorkspaceInterface | undefined

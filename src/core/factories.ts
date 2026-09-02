@@ -20,7 +20,7 @@ import { DatabaseWorkspaceStore } from './workspaces/stores/DatabaseWorkspaceSto
 import { MemoryWorkspaceStore } from './workspaces/stores/MemoryWorkspaceStore.js'
 
 /**
- * Create an immutable file with derived size and line counts.
+ * Creates an immutable file with derived size and line counts.
  *
  * @param input - The file path, content, and optional state
  * @returns A frozen file record
@@ -43,7 +43,7 @@ export function createFile(input: FileInput): FileInterface {
 }
 
 /**
- * Create the text arm of {@link FileContent}.
+ * Creates the text arm of {@link FileContent}.
  *
  * @param text - The text body
  * @param language - The language tag
@@ -79,7 +79,7 @@ export function createBinaryContent(base64: string, mime: BinaryMIME): FileConte
 }
 
 /**
- * Create a workspace.
+ * Creates a workspace.
  *
  * @param options - Optional identity, emitter configuration, and initial files
  * @returns A working workspace
@@ -97,7 +97,7 @@ export function createWorkspace(options?: WorkspaceOptions): WorkspaceInterface 
 }
 
 /**
- * Create an in-memory workspace snapshot store.
+ * Creates an in-memory workspace snapshot store.
  *
  * @returns A process-local workspace store
  *
@@ -113,7 +113,7 @@ export function createMemoryWorkspaceStore(): WorkspaceStoreInterface {
 }
 
 /**
- * Create a database-backed workspace snapshot store.
+ * Creates a database-backed workspace snapshot store.
  *
  * @param driver - The database driver; defaults to an in-memory driver
  * @returns A workspace store backed by the supplied driver
@@ -135,7 +135,7 @@ export function createDatabaseWorkspaceStore(
 }
 
 /**
- * Create an empty workspace registry.
+ * Creates an empty workspace registry.
  *
  * @param options - Default event hooks and optional durability
  * @returns A workspace manager

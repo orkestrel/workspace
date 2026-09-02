@@ -7,7 +7,7 @@ import type { TableInterface } from '@orkestrel/database'
 import { isWorkspaceSnapshot } from '../../validators.js'
 
 /**
- * A workspace snapshot store over a database table.
+ * Persists workspace snapshots in a database table.
  *
  * Snapshots occupy one opaque column and are narrowed when read back from the storage boundary.
  *
@@ -22,7 +22,7 @@ export class DatabaseWorkspaceStore implements WorkspaceStoreInterface {
 	readonly #table: TableInterface<WorkspaceSnapshotRow>
 
 	/**
-	 * Wrap a workspace snapshot table.
+	 * Wraps a workspace snapshot table.
 	 *
 	 * @param table - The table keyed by workspace identifier
 	 */

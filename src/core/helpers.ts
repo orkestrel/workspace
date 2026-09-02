@@ -2,7 +2,7 @@ import type { BinaryMIME, FileContent, Position, Range } from './types.js'
 import { EXTENSION_LANGUAGES } from './constants.js'
 
 /**
- * Infer a language tag from the final file extension.
+ * Infers a language tag from the final file extension.
  *
  * @param path - The file path
  * @returns The mapped language, or `text` when the extension is absent or unknown
@@ -20,10 +20,10 @@ export function inferLanguage(path: string): string {
 }
 
 /**
- * Determine whether content is the text arm.
+ * Determines whether content is the text arm.
  *
  * @param content - The file content
- * @returns Whether the content carries text and a language
+ * @returns True if the content carries text and a language; false otherwise
  *
  * @example
  * ```ts
@@ -54,7 +54,7 @@ export function isBinary(
 }
 
 /**
- * Compute the byte size of file content.
+ * Computes the byte size of file content.
  *
  * @param content - The content to measure
  * @returns UTF-8 bytes for text or decoded bytes for binary content
@@ -70,7 +70,7 @@ export function computeSize(content: FileContent): number {
 }
 
 /**
- * Count the lines in file content.
+ * Counts the lines in file content.
  *
  * @param content - The content to inspect
  * @returns The text line count, or zero for empty text and binary content
@@ -107,10 +107,10 @@ export function computeDecodedSize(base64: string): number {
 }
 
 /**
- * Determine whether a 1-based range is structurally valid.
+ * Determines whether a 1-based range is structurally valid.
  *
  * @param range - The range to inspect
- * @returns Whether both positions are positive and ordered
+ * @returns True if both positions are positive and ordered; false otherwise
  *
  * @example
  * ```ts
@@ -125,7 +125,7 @@ export function isValidRange(range: Range): boolean {
 }
 
 /**
- * Clamp a position to text bounds.
+ * Clamps a position to text bounds.
  *
  * @param text - The addressed text
  * @param position - The requested position
@@ -145,7 +145,7 @@ export function clampPosition(text: string, position: Position): Position {
 }
 
 /**
- * Clamp both positions in a range to text bounds.
+ * Clamps both positions in a range to text bounds.
  *
  * @param text - The addressed text
  * @param range - The requested range
@@ -161,7 +161,7 @@ export function clampRange(text: string, range: Range): Range {
 }
 
 /**
- * Convert a 1-based position to a zero-based string offset.
+ * Converts a 1-based position to a zero-based string offset.
  *
  * @param text - The addressed text
  * @param position - The requested position
@@ -183,7 +183,7 @@ export function offsetAt(text: string, position: Position): number {
 }
 
 /**
- * Slice a clamped half-open text range.
+ * Slices a clamped half-open text range.
  *
  * @param text - The source text
  * @param range - The requested range
@@ -200,7 +200,7 @@ export function sliceRange(text: string, range: Range): string {
 }
 
 /**
- * Replace a clamped half-open text range.
+ * Replaces a clamped half-open text range.
  *
  * @param text - The source text
  * @param range - The requested range
@@ -220,7 +220,7 @@ export function spliceRange(text: string, range: Range, replacement: string): st
 }
 
 /**
- * Assemble a nested range from four 1-based coordinates.
+ * Assembles a nested range from four 1-based coordinates.
  *
  * @param fromLine - The start line
  * @param fromColumn - The start column
@@ -243,7 +243,7 @@ export function rangeOf(
 }
 
 /**
- * Escape regular-expression metacharacters for literal matching.
+ * Escapes regular-expression metacharacters for literal matching.
  *
  * @param value - The literal text
  * @returns The escaped regular-expression source

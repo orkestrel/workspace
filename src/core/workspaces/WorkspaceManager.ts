@@ -11,7 +11,7 @@ import { isArray } from '@orkestrel/contract'
 import { Workspace } from './Workspace.js'
 
 /**
- * An insertion-ordered workspace registry with an active selection.
+ * Provides an insertion-ordered workspace registry with an active selection.
  *
  * A supplied store adds lenient snapshot `open` and `save` operations. Event defaults flow into
  * workspaces created through the registry, while observability remains owned by each workspace.
@@ -33,7 +33,7 @@ export class WorkspaceManager implements WorkspaceManagerInterface {
 	readonly #store: WorkspaceStoreInterface | undefined
 
 	/**
-	 * Create a registry.
+	 * Creates a registry.
 	 *
 	 * @param options - Default event hooks and optional snapshot store
 	 */

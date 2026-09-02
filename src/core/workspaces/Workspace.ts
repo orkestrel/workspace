@@ -26,7 +26,7 @@ import {
 } from '../helpers.js'
 
 /**
- * A mutable path-keyed editing surface over immutable files.
+ * Provides a mutable path-keyed editing surface over immutable files.
  *
  * Whole-file edits create text files, ranged edits operate only on existing text files, and
  * binary files remain available through construction-time hydration. Mutations emit after the
@@ -48,7 +48,7 @@ export class Workspace implements WorkspaceInterface {
 	readonly #emitter: Emitter<WorkspaceEventMap>
 
 	/**
-	 * Create a workspace.
+	 * Creates a workspace.
 	 *
 	 * @param options - Optional identity, emitter configuration, and initial files
 	 */
