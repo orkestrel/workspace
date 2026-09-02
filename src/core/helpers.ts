@@ -37,20 +37,20 @@ export function isText(
 }
 
 /**
- * Determine whether content is the binary arm.
+ * Checks whether content is the binary arm.
  *
  * @param content - The file content
- * @returns Whether the content carries base64 data and a MIME
+ * @returns True if the content carries a base64 string and a MIME; false otherwise
  *
  * @example
  * ```ts
- * isBinary({ data: 'AAAA', mime: 'image/png' }) // true
+ * isBinary({ base64: 'AAAA', mime: 'image/png' }) // true
  * ```
  */
 export function isBinary(
 	content: FileContent,
-): content is { readonly data: string; readonly mime: BinaryMIME } {
-	return 'data' in content
+): content is { readonly base64: string; readonly mime: BinaryMIME } {
+	return 'base64' in content
 }
 
 /**
@@ -66,7 +66,7 @@ export function isBinary(
  */
 export function computeSize(content: FileContent): number {
 	if (isText(content)) return new TextEncoder().encode(content.text).length
-	return decodedSize(content.data)
+	return computeDecodedSize(content.base64)
 }
 
 /**
@@ -89,17 +89,17 @@ export function countLines(content: FileContent): number {
 }
 
 /**
- * Compute the decoded byte length of a base64 string.
+ * Computes the decoded byte length of a base64 string.
  *
- * @param base64 - The base64 data
+ * @param base64 - The base64 string
  * @returns The decoded byte count
  *
  * @example
  * ```ts
- * decodedSize('AAAA') // 3
+ * computeDecodedSize('AAAA') // 3
  * ```
  */
-export function decodedSize(base64: string): number {
+export function computeDecodedSize(base64: string): number {
 	let padding = 0
 	if (base64.endsWith('==')) padding = 2
 	else if (base64.endsWith('=')) padding = 1

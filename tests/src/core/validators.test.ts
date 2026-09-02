@@ -47,7 +47,7 @@ describe('persistence guards', () => {
 		for (const mime of ['application/pdf', 'image/avif', 'arbitrary']) {
 			const file = {
 				path: 'a.bin',
-				content: { data: 'AA==', mime },
+				content: { base64: 'AA==', mime },
 				state: 'created',
 				size: 1,
 				lines: 0,

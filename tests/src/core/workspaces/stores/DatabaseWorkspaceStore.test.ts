@@ -76,14 +76,14 @@ describe('DatabaseWorkspaceStore — invalid stored rows', () => {
 			},
 			{
 				path: 'a.bin',
-				content: { data: 'AA==', mime: 'application/pdf' },
+				content: { base64: 'AA==', mime: 'application/pdf' },
 				state: 'created',
 				size: 1,
 				lines: 0,
 			},
 			{
 				path: 'a.bin',
-				content: { data: 'AA==', mime: 'arbitrary' },
+				content: { base64: 'AA==', mime: 'arbitrary' },
 				state: 'created',
 				size: 1,
 				lines: 0,

@@ -61,9 +61,9 @@ export function createTextContent(text: string, language: string): FileContent {
 }
 
 /**
- * Create the binary arm of {@link FileContent}.
+ * Creates the binary arm of {@link FileContent}.
  *
- * @param data - The base64 payload
+ * @param base64 - The base64 payload
  * @param mime - The binary MIME
  * @returns Binary file content
  *
@@ -74,8 +74,8 @@ export function createTextContent(text: string, language: string): FileContent {
  * createBinaryContent('AAAA', 'image/png')
  * ```
  */
-export function createBinaryContent(data: string, mime: BinaryMIME): FileContent {
-	return { data, mime }
+export function createBinaryContent(base64: string, mime: BinaryMIME): FileContent {
+	return { base64, mime }
 }
 
 /**

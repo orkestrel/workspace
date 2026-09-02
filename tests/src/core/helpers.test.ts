@@ -1,11 +1,11 @@
 import {
 	clampPosition,
 	clampRange,
+	computeDecodedSize,
 	computeSize,
 	countLines,
 	createBinaryContent,
 	createTextContent,
-	decodedSize,
 	escapeRegExp,
 	EXTENSION_LANGUAGES,
 	inferLanguage,
@@ -51,8 +51,8 @@ describe('content derivation', () => {
 		expect(computeSize({ text: 'abc', language: 'text' })).toBe(3)
 		expect(computeSize({ text: 'café', language: 'text' })).toBe(5)
 		expect(computeSize({ text: '😀', language: 'text' })).toBe(4)
-		expect(computeSize({ data: 'AAAA', mime: 'image/png' })).toBe(3)
-		expect(computeSize({ data: '', mime: 'image/png' })).toBe(0)
+		expect(computeSize({ base64: 'AAAA', mime: 'image/png' })).toBe(3)
+		expect(computeSize({ base64: '', mime: 'image/png' })).toBe(0)
 	})
 
 	it('counts text lines and no binary lines', () => {
@@ -61,18 +61,18 @@ describe('content derivation', () => {
 		expect(countLines({ text: 'a\nb\nc', language: 'text' })).toBe(3)
 		expect(countLines({ text: 'a\n', language: 'text' })).toBe(2)
 		expect(countLines({ text: 'a\nb\n', language: 'text' })).toBe(3)
-		expect(countLines({ data: 'AAAA', mime: 'image/png' })).toBe(0)
+		expect(countLines({ base64: 'AAAA', mime: 'image/png' })).toBe(0)
 	})
 
 	it('handles all base64 padding cases and runtime-encoded values', () => {
-		expect(decodedSize('')).toBe(0)
-		expect(decodedSize('AA')).toBe(1)
-		expect(decodedSize('AAA')).toBe(2)
-		expect(decodedSize('AAAA')).toBe(3)
-		expect(decodedSize('AAA=')).toBe(2)
-		expect(decodedSize('AA==')).toBe(1)
+		expect(computeDecodedSize('')).toBe(0)
+		expect(computeDecodedSize('AA')).toBe(1)
+		expect(computeDecodedSize('AAA')).toBe(2)
+		expect(computeDecodedSize('AAAA')).toBe(3)
+		expect(computeDecodedSize('AAA=')).toBe(2)
+		expect(computeDecodedSize('AA==')).toBe(1)
 		for (const payload of ['', 'a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef']) {
-			expect(decodedSize(btoa(payload))).toBe(payload.length)
+			expect(computeDecodedSize(btoa(payload))).toBe(payload.length)
 		}
 	})
 })

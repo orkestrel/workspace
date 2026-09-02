@@ -66,7 +66,7 @@ describe('content factories', () => {
 
 	it('creates the binary arm', () => {
 		const content = createBinaryContent('<base64>', 'image/jpeg')
-		expect(content).toEqual({ data: '<base64>', mime: 'image/jpeg' })
+		expect(content).toEqual({ base64: '<base64>', mime: 'image/jpeg' })
 		expect(isBinary(content)).toBe(true)
 		expect(isText(content)).toBe(false)
 	})

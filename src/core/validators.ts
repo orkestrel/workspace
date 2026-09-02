@@ -20,7 +20,7 @@ export function isFile(value: unknown): value is FileInterface {
 		if (!isRecord(value.content)) return false
 		const text = isString(value.content.text) && isString(value.content.language)
 		const binary =
-			isString(value.content.data) &&
+			isString(value.content.base64) &&
 			literalOf('image/png', 'image/jpeg', 'image/gif', 'image/webp')(value.content.mime)
 		return text || binary
 	})

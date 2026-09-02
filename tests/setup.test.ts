@@ -101,7 +101,7 @@ describe('buildWorkspaceSnapshot', () => {
 
 		expect(snapshot.files.map((file) => file.path)).toEqual(['src/main.ts', 'icon.png'])
 		expect(text?.content).toHaveProperty('text', 'const x = 1')
-		expect(binary?.content).toEqual({ data: 'AAAA', mime: 'image/png' })
+		expect(binary?.content).toEqual({ base64: 'AAAA', mime: 'image/png' })
 	})
 
 	it('is pure JSON, which is what the driver-swap parity proofs rest on', () => {

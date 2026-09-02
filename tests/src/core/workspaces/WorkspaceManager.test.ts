@@ -174,6 +174,15 @@ describe('WorkspaceManager — remove (§9.2) / clear', () => {
 		expect(manager.count).toBe(1)
 	})
 
+	it('remove(ids[]) of an empty batch returns true and drops nothing', () => {
+		const manager = new WorkspaceManager()
+		manager.add({ id: 'a' })
+
+		expect(manager.remove([])).toBe(true) // no id is present to fail the batch
+		expect(manager.count).toBe(1)
+		expect(manager.workspace('a')).toBeDefined()
+	})
+
 	it('removing the ACTIVE workspace clears active', () => {
 		const manager = new WorkspaceManager()
 		manager.add({ id: 'a' }) // auto-active
@@ -341,7 +350,7 @@ describe('WorkspaceManager — open / save over a real store (W-d hydration seam
 		// The hydrated workspace's files EQUAL the originals (text + binary survived).
 		expect(opened.files()).toEqual(seeded.files())
 		expect(opened.read('src/main.ts')).toBe('const x = 1')
-		expect(opened.file('icon.png')?.content).toEqual({ data: 'AAAA', mime: 'image/png' })
+		expect(opened.file('icon.png')?.content).toEqual({ base64: 'AAAA', mime: 'image/png' })
 	})
 
 	it('open(id) on a store MISS (id never persisted) returns undefined', async () => {

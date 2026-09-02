@@ -35,7 +35,7 @@ absent optional field is simply absent.
 | Name                        | Kind      | Shape / Purpose                                                                                                                                      |
 | --------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BinaryMIME`                | type      | The MIME labels a binary arm may carry: `image/png`, `image/jpeg`, `image/gif`, `image/webp`.                                                        |
-| `FileContent`               | type      | `{ text, language } \| { data, mime }` — the tagless text-or-binary union, narrowed by guard rather than by a discriminant field.                    |
+| `FileContent`               | type      | `{ text, language } \| { base64, mime }` — the tagless text-or-binary union, narrowed by guard rather than by a discriminant field.                  |
 | `FileState`                 | type      | `created \| modified` — whether the value was minted for a new path or changed from an existing one.                                                 |
 | `FileInput`                 | interface | `{ path, content, state? }` — what `createFile` needs; size and line counts are derived, never supplied.                                             |
 | `FileInterface`             | interface | `{ path, content, state, size, lines }` — one frozen file value.                                                                                     |
@@ -76,22 +76,22 @@ package can answer, it answers with a value.
 The pure leaves, from [`helpers.ts`](../src/core/helpers.ts). Each one is exported and tested
 on its own, and the classes compose them rather than hiding them.
 
-| Name            | Kind     | Signature                                                     | Behavior                                                                       |
-| --------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `inferLanguage` | function | `(path: string) => string`                                    | Maps the final extension to a language tag, falling back to `text`.            |
-| `isText`        | function | `(content: FileContent) => boolean`                           | Narrows content to its text arm.                                               |
-| `isBinary`      | function | `(content: FileContent) => boolean`                           | Narrows content to its binary arm.                                             |
-| `computeSize`   | function | `(content: FileContent) => number`                            | UTF-8 bytes for text, decoded bytes for binary.                                |
-| `countLines`    | function | `(content: FileContent) => number`                            | Text lines; zero for empty text and for binary content.                        |
-| `decodedSize`   | function | `(base64: string) => number`                                  | The decoded length of base64, computed arithmetically rather than by decoding. |
-| `isValidRange`  | function | `(range: Range) => boolean`                                   | Whether both positions are positive and ordered.                               |
-| `clampPosition` | function | `(text: string, position: Position) => Position`              | Pulls a position inside the text's bounds.                                     |
-| `clampRange`    | function | `(text: string, range: Range) => Range`                       | Clamps both endpoints.                                                         |
-| `offsetAt`      | function | `(text: string, position: Position) => number`                | Converts a 1-based position to a bounded string offset.                        |
-| `sliceRange`    | function | `(text: string, range: Range) => string`                      | Reads a clamped half-open span.                                                |
-| `spliceRange`   | function | `(text: string, range: Range, replacement: string) => string` | Replaces a clamped half-open span.                                             |
-| `rangeOf`       | function | `(fromLine, fromColumn, toLine, toColumn) => Range`           | Builds a range from four flat coordinates, without validating it.              |
-| `escapeRegExp`  | function | `(value: string) => string`                                   | Escapes metacharacters so literal text can be used as pattern source.          |
+| Name                 | Kind     | Signature                                                     | Behavior                                                                       |
+| -------------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `inferLanguage`      | function | `(path: string) => string`                                    | Maps the final extension to a language tag, falling back to `text`.            |
+| `isText`             | function | `(content: FileContent) => boolean`                           | Narrows content to its text arm.                                               |
+| `isBinary`           | function | `(content: FileContent) => boolean`                           | Narrows content to its binary arm.                                             |
+| `computeSize`        | function | `(content: FileContent) => number`                            | UTF-8 bytes for text, decoded bytes for binary.                                |
+| `countLines`         | function | `(content: FileContent) => number`                            | Text lines; zero for empty text and for binary content.                        |
+| `computeDecodedSize` | function | `(base64: string) => number`                                  | The decoded length of base64, computed arithmetically rather than by decoding. |
+| `isValidRange`       | function | `(range: Range) => boolean`                                   | Whether both positions are positive and ordered.                               |
+| `clampPosition`      | function | `(text: string, position: Position) => Position`              | Pulls a position inside the text's bounds.                                     |
+| `clampRange`         | function | `(text: string, range: Range) => Range`                       | Clamps both endpoints.                                                         |
+| `offsetAt`           | function | `(text: string, position: Position) => number`                | Converts a 1-based position to a bounded string offset.                        |
+| `sliceRange`         | function | `(text: string, range: Range) => string`                      | Reads a clamped half-open span.                                                |
+| `spliceRange`        | function | `(text: string, range: Range, replacement: string) => string` | Replaces a clamped half-open span.                                             |
+| `rangeOf`            | function | `(fromLine, fromColumn, toLine, toColumn) => Range`           | Builds a range from four flat coordinates, without validating it.              |
+| `escapeRegExp`       | function | `(value: string) => string`                                   | Escapes metacharacters so literal text can be used as pattern source.          |
 
 ### Validators
 
@@ -112,7 +112,7 @@ class. Each returns the interface, not the class.
 | ------------------------------ | -------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | `createFile`                   | function | `(input: FileInput) => FileInterface`                              | Freezes a file value and derives its `size` and `lines`.                                 |
 | `createTextContent`            | function | `(text: string, language: string) => FileContent`                  | Builds the text arm.                                                                     |
-| `createBinaryContent`          | function | `(data: string, mime: BinaryMIME) => FileContent`                  | Builds the binary arm.                                                                   |
+| `createBinaryContent`          | function | `(base64: string, mime: BinaryMIME) => FileContent`                | Builds the binary arm.                                                                   |
 | `createWorkspace`              | function | `(options?: WorkspaceOptions) => WorkspaceInterface`               | Creates a workspace with the same identity, emitter, and seed reach as the constructor.  |
 | `createMemoryWorkspaceStore`   | function | `() => WorkspaceStoreInterface`                                    | Creates a process-local snapshot store.                                                  |
 | `createDatabaseWorkspaceStore` | function | `(driver?: DriverInterface) => WorkspaceStoreInterface`            | Creates a snapshot store over a database table; the driver defaults to an in-memory one. |
@@ -205,7 +205,7 @@ Nothing mutates it. An edit replaces the value stored at a path, so a reference 
 edit still describes exactly what was there.
 
 `FileContent` is a tagless union — text carries `{ text, language }`, binary carries
-`{ data, mime }` — and callers narrow it with a guard instead of reading a discriminant that could
+`{ base64, mime }` — and callers narrow it with a guard instead of reading a discriminant that could
 disagree with the payload:
 
 ```ts
@@ -232,7 +232,7 @@ isText(note.content) // true
 
 const icon = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
 isBinary(icon.content) // true
-icon.size // 3 — decoded base64 bytes, via decodedSize
+icon.size // 3 — decoded base64 bytes, via computeDecodedSize
 ```
 
 Language is inferred once, from the final path extension through `EXTENSION_LANGUAGES`, and an
@@ -357,8 +357,10 @@ returns `false`, preserves the value and order, and emits nothing.
 `remove` mirrors that leniency, answering with a value rather than throwing over an absent path.
 Each batch form — `has(paths)`, `move(mapping)`, and `remove(paths)` — applies to every entry it
 can and reports `true` only when all of them succeeded, so one absent path turns the batch's answer
-`false` while the present paths still move or drop. `clear()` owns emptying the workspace and sends
-one canonical `clear` event, never a burst of per-path removals.
+`false` while the present paths still move or drop. An empty batch has no entry that can fail, so
+`has([])`, `move({})`, `remove([])`, and the registry's `remove([])` each report `true` and change
+nothing. `clear()` owns emptying the workspace and sends one canonical `clear` event, never a burst
+of per-path removals.
 
 `snapshot()` is the boundary between the live surface and everything durable: an id and a flat file
 list, holding the same frozen values the map holds. Feed those files back through a workspace's

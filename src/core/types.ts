@@ -4,16 +4,16 @@ import type { EmitterErrorHandler, EmitterHooks, EmitterInterface } from '@orkes
 export type BinaryMIME = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
 
 /**
- * The immutable content of a file: either text with a language tag or base64 data with a MIME.
+ * The immutable content of a file: either text with a language tag or a base64 string with a MIME.
  */
 export type FileContent =
 	| { readonly text: string; readonly language: string }
-	| { readonly data: string; readonly mime: BinaryMIME }
+	| { readonly base64: string; readonly mime: BinaryMIME }
 
 /** The edit state of an immutable file value. */
 export type FileState = 'created' | 'modified'
 
-/** The caller-supplied data used to create an immutable file. */
+/** The caller-supplied values used to create an immutable file. */
 export interface FileInput {
 	readonly path: string
 	readonly content: FileContent

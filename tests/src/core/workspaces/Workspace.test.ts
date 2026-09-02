@@ -454,6 +454,27 @@ describe('Workspace — remove / clear', () => {
 	})
 })
 
+describe('Workspace — empty batch forms', () => {
+	it('reports true for an empty batch while changing and emitting nothing', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'A')
+		const events = createRecorders<WorkspaceEventMap, 'write' | 'remove' | 'move'>(
+			workspace.emitter,
+			['write', 'remove', 'move'],
+		)
+
+		expect(workspace.has([])).toBe(true) // no entry is present to fail the batch
+		expect(workspace.move({})).toBe(true)
+		expect(workspace.remove([])).toBe(true)
+
+		expect(workspace.count).toBe(1)
+		expect(workspace.read('a.ts')).toBe('A')
+		expect(events.write.count).toBe(0)
+		expect(events.move.count).toBe(0)
+		expect(events.remove.count).toBe(0)
+	})
+})
+
 describe('Workspace — count + insertion order', () => {
 	it('tracks count and lists files in insertion order', () => {
 		const workspace = createWorkspace()
