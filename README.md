@@ -41,7 +41,7 @@ Ranged edits clamp to the text they address, search is literal until you ask for
 absent path answers with `undefined` instead of throwing. Give the manager a store and `save` and
 `open` round-trip a workspace through it.
 
-See the [workspace guide](guides/src/workspace.md) for the complete surface, edit semantics,
+See the [workspace guide](guides/workspace.md) for the complete surface, edit semantics,
 events, and stores.
 
 ## Requirements
