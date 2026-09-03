@@ -1,8 +1,9 @@
 import type {
+	BinaryContent,
 	BinaryMIME,
-	FileContent,
 	FileInput,
 	FileInterface,
+	TextContent,
 	WorkspaceInterface,
 	WorkspaceManagerInterface,
 	WorkspaceManagerOptions,
@@ -56,7 +57,7 @@ export function createFile(input: FileInput): FileInterface {
  * createTextContent('hello', 'text')
  * ```
  */
-export function createTextContent(text: string, language: string): FileContent {
+export function createTextContent(text: string, language: string): TextContent {
 	return { text, language }
 }
 
@@ -74,7 +75,7 @@ export function createTextContent(text: string, language: string): FileContent {
  * createBinaryContent('AAAA', 'image/png')
  * ```
  */
-export function createBinaryContent(base64: string, mime: BinaryMIME): FileContent {
+export function createBinaryContent(base64: string, mime: BinaryMIME): BinaryContent {
 	return { base64, mime }
 }
 
@@ -115,7 +116,7 @@ export function createMemoryWorkspaceStore(): WorkspaceStoreInterface {
 /**
  * Creates a database-backed workspace snapshot store.
  *
- * @param driver - The database driver; defaults to an in-memory driver
+ * @param driver - The database driver. Default: an in-memory driver.
  * @returns A workspace store backed by the supplied driver
  *
  * @example

@@ -1,30 +1,23 @@
-import type { Range, WorkspaceEventMap } from '@src/core'
+import type { WorkspaceEventMap } from '@src/core'
 import {
 	createBinaryContent,
 	createFile,
 	createWorkspace,
 	isText,
 	isWorkspaceError,
+	rangeOf,
 	Workspace,
 } from '@src/core'
 import { createRecorder, createRecorders } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
 
-// The in-memory Workspace edit surface (AGENTS §16 — real data, no mocks). Every edit
+// The in-memory Workspace edit surface (real data, no mocks). Every edit
 // replaces the immutable File at a path (transitioning created → modified); the modality
 // matrix governs text-only ops on a binary file; the emitter observes each mutation after
 // it completes. The edit surface itself only ever mints TEXT Files, so a genuine binary File
 // (built with the public createFile + createBinaryContent) is placed through the Workspace's
 // optional construction-time seed — the same hydration seam a future FileStore uses — never
 // a stub.
-
-// Build a 1-based range from line/column pairs.
-function range(startLine: number, startColumn: number, endLine: number, endColumn: number): Range {
-	return {
-		start: { line: startLine, column: startColumn },
-		end: { line: endLine, column: endColumn },
-	}
-}
 
 // A workspace seeded with one real binary (image) File at `icon.png` (base64 'AAAA' → 3 decoded
 // bytes). Built via the public createFile / createBinaryContent, placed through the
@@ -97,7 +90,7 @@ describe('Workspace — ranged write (splice) + clamping', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'const x = 1')
 
-		workspace.write('a.ts', '2', range(1, 11, 1, 12)) // replace the '1'
+		workspace.write('a.ts', '2', rangeOf(1, 11, 1, 12)) // replace the '1'
 
 		expect(workspace.read('a.ts')).toBe('const x = 2')
 		expect(workspace.file('a.ts')?.state).toBe('modified')
@@ -107,7 +100,7 @@ describe('Workspace — ranged write (splice) + clamping', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'abc')
 
-		workspace.write('a.ts', 'XYZ', range(1, 2, 9, 9)) // from column 2 to the end
+		workspace.write('a.ts', 'XYZ', rangeOf(1, 2, 9, 9)) // from column 2 to the end
 
 		expect(workspace.read('a.ts')).toBe('aXYZ')
 	})
@@ -116,36 +109,36 @@ describe('Workspace — ranged write (splice) + clamping', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'hello\nworld')
 
-		const result = workspace.read('a.ts', range(1, 1, 1, 6))
+		const result = workspace.read('a.ts', rangeOf(1, 1, 1, 6))
 
-		expect(result).toEqual({ content: 'hello', range: range(1, 1, 1, 6) })
+		expect(result).toEqual({ content: 'hello', range: rangeOf(1, 1, 1, 6) })
 	})
 
 	it('reports the trimmed range when the read reaches past the end', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'ab')
 
-		const result = workspace.read('a.ts', range(1, 1, 9, 9))
+		const result = workspace.read('a.ts', rangeOf(1, 1, 9, 9))
 
-		expect(result).toEqual({ content: 'ab', range: range(1, 1, 1, 3) })
+		expect(result).toEqual({ content: 'ab', range: rangeOf(1, 1, 1, 3) })
 	})
 
 	it('throws RANGE on a structurally invalid ranged write (inverted / sub-1)', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'abc')
 
-		expect(() => workspace.write('a.ts', 'x', range(2, 1, 1, 1))).toThrow(
+		expect(() => workspace.write('a.ts', 'x', rangeOf(2, 1, 1, 1))).toThrow(
 			expect.objectContaining({ name: 'WorkspaceError', code: 'RANGE' }),
 		)
-		expect(() => workspace.write('a.ts', 'x', range(0, 1, 1, 1))).toThrow(
+		expect(() => workspace.write('a.ts', 'x', rangeOf(0, 1, 1, 1))).toThrow(
 			expect.objectContaining({ code: 'RANGE' }),
 		)
 	})
 
-	it('throws MODALITY on a ranged write to an absent path (no text file to splice)', () => {
-		expect(() => createWorkspace().write('missing.ts', 'x', range(1, 1, 1, 1))).toThrow(
+	it('throws MISSING on a ranged write to an absent path (no text file to splice)', () => {
+		expect(() => createWorkspace().write('missing.ts', 'x', rangeOf(1, 1, 1, 1))).toThrow(
 			expect.objectContaining({
-				code: 'MODALITY',
+				code: 'MISSING',
 				message: 'Cannot splice a range of a missing file: missing.ts',
 			}),
 		)
@@ -228,6 +221,20 @@ describe('Workspace — search', () => {
 			{ path: 'a.ts', line: 1, column: 1, length: 5, content: 'const x = 1' },
 			{ path: 'a.ts', line: 2, column: 1, length: 5, content: 'const y = 2' },
 		])
+	})
+
+	it('reports a CRLF line without its carriage return, keeping the coordinates readable', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'const x = 1\r\nconst y = 2')
+
+		const matches = workspace.search('const')
+
+		// A line scan that split on '\n' alone leaves '\r' on every line but the last, so the
+		// reported content lies and a `$`-anchored regex pattern never matches a line end.
+		expect(matches.map((match) => match.content)).toEqual(['const x = 1', 'const y = 2'])
+		// The reported line stays a valid input to a ranged read, whose offset arithmetic counts one
+		// character per separator, so the search split and that arithmetic agree on line indices.
+		expect(workspace.read('a.ts', rangeOf(2, 1, 2, 6))?.content).toBe('const')
 	})
 
 	it('treats the query as a regex when regex:true', () => {
@@ -540,7 +547,7 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 	it('throws MODALITY for a ranged read of an image file', () => {
 		const workspace = imageWorkspace()
 
-		expect(() => workspace.read('icon.png', range(1, 1, 1, 2))).toThrow(
+		expect(() => workspace.read('icon.png', rangeOf(1, 1, 1, 2))).toThrow(
 			expect.objectContaining({ code: 'MODALITY' }),
 		)
 	})
@@ -548,7 +555,7 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 	it('throws MODALITY for a ranged write to an image file', () => {
 		const workspace = imageWorkspace()
 
-		expect(() => workspace.write('icon.png', 'x', range(1, 1, 1, 2))).toThrow(
+		expect(() => workspace.write('icon.png', 'x', rangeOf(1, 1, 1, 2))).toThrow(
 			expect.objectContaining({
 				code: 'MODALITY',
 				message: 'Cannot splice a range of a binary file: icon.png',

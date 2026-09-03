@@ -1,22 +1,31 @@
 import { createMemoryWorkspaceStore, isWorkspaceSnapshot } from '@src/core'
 import { roundTripJSON } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { assertWorkspaceStoreContract, buildWorkspaceSnapshot } from '../../../../setup.js'
+import { buildWorkspaceSnapshot, WORKSPACE_STORE_CASES } from '../../../../setup.js'
 
-// The W-d MemoryWorkspaceStore — the in-memory default behind the WorkspaceStoreInterface
-// persistence seam (get / set / delete, async, keyed by a snapshot's own id). It persists the
-// WorkspaceSnapshot (the self-contained, pure-JSON workspace state) UNCHANGED. REAL data only
-// (AGENTS §16) — a real Workspace's `snapshot()` carrying BOTH a text file (minted by the edit
-// surface) and a BINARY file (seated through `createFile`, the only way to seat a non-text file),
-// NO mocks.
+// MemoryWorkspaceStore — the in-memory default behind the WorkspaceStoreInterface persistence
+// seam (get / set / delete, async, keyed by a snapshot's own id). It persists the
+// WorkspaceSnapshot (the self-contained, pure-JSON workspace state) UNCHANGED. Real data, no
+// mocks — a real Workspace's `snapshot()` carrying a text file (minted by the edit surface) and a
+// BINARY file (seated through `createFile`, the only way to seat a non-text file).
 
-// The shared `WorkspaceStoreInterface` contract battery (round-trip / upsert / delete & absent /
-// two-ids-coexist) plus the real `buildWorkspaceSnapshot` fixture both store twins drive live in
-// tests/setup.ts (AGENTS §16.1), so the contract + snapshot stay in ONE place. This file invokes
-// that battery against the memory factory and keeps only its TWIN-SPECIFIC blocks below: the JSON
+// The shared `WorkspaceStoreInterface` contract cases (round-trip / upsert / delete & absent /
+// two-ids-coexist) plus the real `buildWorkspaceSnapshot` fixture drive MemoryWorkspaceStore and
+// DatabaseWorkspaceStore alike: the shared battery lives in tests/setup.ts, so the contract and the
+// snapshot stay in ONE place. This file
+// runs those cases against the memory factory and keeps only its TWIN-SPECIFIC blocks: the JSON
 // driver-swap-parity round-trip and the `isWorkspaceSnapshot` read-boundary guard.
 describe('MemoryWorkspaceStore', () => {
-	assertWorkspaceStoreContract(() => createMemoryWorkspaceStore(), buildWorkspaceSnapshot)
+	for (const scenario of WORKSPACE_STORE_CASES) {
+		it(`${scenario.name}`, async () => {
+			const { actual, expected } = await scenario.probe(
+				createMemoryWorkspaceStore(),
+				buildWorkspaceSnapshot,
+			)
+
+			expect(actual).toEqual(expected)
+		})
+	}
 })
 
 describe('MemoryWorkspaceStore — JSON driver-swap parity', () => {
@@ -34,7 +43,7 @@ describe('MemoryWorkspaceStore — JSON driver-swap parity', () => {
 	})
 })
 
-describe('isWorkspaceSnapshot — the §14 read-boundary guard (total + defensive)', () => {
+describe('isWorkspaceSnapshot — the read-boundary guard (total + defensive)', () => {
 	it('accepts a real snapshot (text + binary files)', () => {
 		expect(isWorkspaceSnapshot(buildWorkspaceSnapshot())).toBe(true)
 		// An empty-files snapshot is still valid (a fresh workspace).

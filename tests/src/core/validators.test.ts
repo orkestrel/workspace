@@ -6,8 +6,8 @@ import {
 	isFile,
 	isWorkspaceSnapshot,
 } from '@src/core'
+import { createHostileValues } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { createRevokedProxy, createThrowingGetterRecord } from '../../setup.js'
 
 describe('persistence guards', () => {
 	it('accepts both file states and every closed binary MIME', () => {
@@ -57,15 +57,14 @@ describe('persistence guards', () => {
 		}
 	})
 
-	it('keeps file and snapshot guards total for hostile property access', () => {
-		const revoked = createRevokedProxy()
-		expect(() => isFile(createThrowingGetterRecord('path'))).not.toThrow()
-		expect(isFile(createThrowingGetterRecord('path'))).toBe(false)
-		expect(() => isFile(revoked)).not.toThrow()
-		expect(isFile(revoked)).toBe(false)
-		expect(() => isWorkspaceSnapshot(createThrowingGetterRecord('id'))).not.toThrow()
-		expect(isWorkspaceSnapshot(createThrowingGetterRecord('id'))).toBe(false)
-		expect(() => isWorkspaceSnapshot(revoked)).not.toThrow()
-		expect(isWorkspaceSnapshot(revoked)).toBe(false)
+	it('keeps file and snapshot guards total across every hostile value the package ships', () => {
+		// `createHostileValues` owns the hostile population and may grow it in a release, so the
+		// whole returned set runs in one loop and each failure names the index it came from.
+		for (const [index, value] of createHostileValues().entries()) {
+			expect(() => isFile(value), `hostile value ${index}`).not.toThrow()
+			expect(isFile(value), `hostile value ${index}`).toBe(false)
+			expect(() => isWorkspaceSnapshot(value), `hostile value ${index}`).not.toThrow()
+			expect(isWorkspaceSnapshot(value), `hostile value ${index}`).toBe(false)
+		}
 	})
 })

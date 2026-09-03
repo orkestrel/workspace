@@ -29,7 +29,9 @@ not contracts this repository owns.
   `@orkestrel/database`.
 - [`emitter.md`](emitter.md) — typed event observation from `@orkestrel/emitter`.
 - [`guide.md`](guide.md) — documentation parity support from `@orkestrel/guide`.
+- [`probe.md`](probe.md) — claim proving from `@orkestrel/probe`.
 - [`scaffold.md`](scaffold.md) — repository maintenance from `@orkestrel/scaffold`.
+- [`test.md`](test.md) — shared test infrastructure from `@orkestrel/test`.
 
 ## See also
 

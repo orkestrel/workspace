@@ -13,9 +13,15 @@ import { isWorkspaceSnapshot } from '../../validators.js'
  *
  * @example
  * ```ts
- * import { createDatabaseWorkspaceStore } from '@orkestrel/workspace'
+ * import { rawShape, stringShape } from '@orkestrel/contract'
+ * import { createDatabase, createMemoryDriver } from '@orkestrel/database'
+ * import { DatabaseWorkspaceStore } from '@orkestrel/workspace'
  *
- * const store = createDatabaseWorkspaceStore()
+ * const database = createDatabase({
+ * 	driver: createMemoryDriver(),
+ * 	tables: { workspaces: { id: stringShape(), snapshot: rawShape({}) } },
+ * })
+ * const store = new DatabaseWorkspaceStore(database.table('workspaces'))
  * ```
  */
 export class DatabaseWorkspaceStore implements WorkspaceStoreInterface {

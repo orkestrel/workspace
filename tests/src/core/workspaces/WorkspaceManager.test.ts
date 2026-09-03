@@ -9,11 +9,11 @@ import {
 } from '@src/core'
 import { describe, expect, it } from 'vitest'
 
-// WorkspaceManager is the §9 registry over the workspace layer WITH an active pointer — an
+// WorkspaceManager is the registry over the workspace layer WITH an active pointer — an
 // insertion-ordered store keyed by id (add / workspace / workspaces / count / remove(id|ids[]) /
 // clear) PLUS active / switch. Event-free (each Workspace owns its own emitter). The first add
 // auto-activates; a later add leaves active; switch re-points it; removing the active (or clear)
-// clears it. Real data, no mocks (AGENTS §16) — each `add` mints a genuine Workspace.
+// clears it. Real data, no mocks — each `add` mints a genuine Workspace.
 
 describe('WorkspaceManager — add / accessors / count', () => {
 	it('starts empty with no active workspace', () => {
@@ -132,7 +132,7 @@ describe('WorkspaceManager — active pointer + switch + auto-activate', () => {
 	})
 })
 
-describe('WorkspaceManager — remove (§9.2) / clear', () => {
+describe('WorkspaceManager — remove / clear', () => {
 	it('remove(id) drops one and reports whether any was removed', () => {
 		const manager = new WorkspaceManager()
 		manager.add({ id: 'a' })
@@ -299,7 +299,7 @@ describe('createWorkspaceManager', () => {
 	})
 })
 
-describe('WorkspaceManager — open / save over a real store (W-d hydration seam)', () => {
+describe('WorkspaceManager — open / save over a real store', () => {
 	it('open(id) of an ALREADY-registered id activates it WITHOUT hitting the store', async () => {
 		// A registry hit short-circuits: the workspace is activated (switched to) and returned, no
 		// store.get. Works even WITHOUT a store (the registry is the live source).

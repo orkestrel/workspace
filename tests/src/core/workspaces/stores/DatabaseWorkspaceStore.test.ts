@@ -4,25 +4,32 @@ import { createDatabaseWorkspaceStore, DatabaseWorkspaceStore } from '@src/core'
 import { rawShape, stringShape } from '@orkestrel/contract'
 import { createDatabase, createMemoryDriver } from '@orkestrel/database'
 import { describe, expect, it } from 'vitest'
-import { assertWorkspaceStoreContract, buildWorkspaceSnapshot } from '../../../../setup.js'
+import { buildWorkspaceSnapshot, WORKSPACE_STORE_CASES } from '../../../../setup.js'
 
-// src/core/agents/workspaces/stores/DatabaseWorkspaceStore.ts — the durable, driver-pluggable twin
+// src/core/workspaces/stores/DatabaseWorkspaceStore.ts — the durable, driver-pluggable twin
 // of the plain-Map MemoryWorkspaceStore behind the WorkspaceStoreInterface seam (get / set / delete,
 // async, keyed by a snapshot's own id). It persists the WorkspaceSnapshot as ONE OPAQUE JSON column
-// over a `databases` table (driver default = createMemoryDriver), narrowing the column back to a
-// WorkspaceSnapshot on `get` (the §14 boundary narrow). Exercised over a REAL memory driver, with
-// REAL WorkspaceSnapshot values (§16 NO mocks) — a real Workspace's text file (minted by the edit
-// surface) plus a BINARY file (the only way to seat one is `createFile`).
+// over a `workspaces` table (driver default = createMemoryDriver), narrowing the column back to a
+// WorkspaceSnapshot on `get` (the boundary narrow). Exercised over a REAL memory driver, with
+// REAL WorkspaceSnapshot values — real data, no mocks — a real Workspace's text file (minted by the
+// edit surface) plus a BINARY file (the only way to seat one is `createFile`).
 
-// The shared `WorkspaceStoreInterface` contract battery (round-trip / upsert / delete & absent /
-// two-ids-coexist) plus the real `buildWorkspaceSnapshot` fixture both store twins drive live in
-// tests/setup.ts (AGENTS §16.1). This file invokes that battery against the database factory (over a
-// REAL memory driver) and keeps only its TWIN-SPECIFIC block below: the default-driver overload.
+// The shared `WorkspaceStoreInterface` contract cases (round-trip / upsert / delete & absent /
+// two-ids-coexist) plus the real `buildWorkspaceSnapshot` fixture drive MemoryWorkspaceStore and
+// DatabaseWorkspaceStore alike: the shared battery lives in tests/setup.ts. This file runs those
+// cases against the database factory
+// (over a REAL memory driver) and keeps only its TWIN-SPECIFIC block: the default-driver overload.
 describe('DatabaseWorkspaceStore', () => {
-	assertWorkspaceStoreContract(
-		() => createDatabaseWorkspaceStore(createMemoryDriver()),
-		buildWorkspaceSnapshot,
-	)
+	for (const scenario of WORKSPACE_STORE_CASES) {
+		it(`${scenario.name}`, async () => {
+			const { actual, expected } = await scenario.probe(
+				createDatabaseWorkspaceStore(createMemoryDriver()),
+				buildWorkspaceSnapshot,
+			)
+
+			expect(actual).toEqual(expected)
+		})
+	}
 })
 
 describe('DatabaseWorkspaceStore — driver overload', () => {

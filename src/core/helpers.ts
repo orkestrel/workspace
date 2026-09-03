@@ -1,4 +1,4 @@
-import type { BinaryMIME, FileContent, Position, Range } from './types.js'
+import type { BinaryContent, FileContent, Position, Range, TextContent } from './types.js'
 import { EXTENSION_LANGUAGES } from './constants.js'
 
 /**
@@ -30,9 +30,7 @@ export function inferLanguage(path: string): string {
  * isText({ text: 'hello', language: 'text' }) // true
  * ```
  */
-export function isText(
-	content: FileContent,
-): content is { readonly text: string; readonly language: string } {
+export function isText(content: FileContent): content is TextContent {
 	return 'text' in content
 }
 
@@ -47,9 +45,7 @@ export function isText(
  * isBinary({ base64: 'AAAA', mime: 'image/png' }) // true
  * ```
  */
-export function isBinary(
-	content: FileContent,
-): content is { readonly base64: string; readonly mime: BinaryMIME } {
+export function isBinary(content: FileContent): content is BinaryContent {
 	return 'base64' in content
 }
 

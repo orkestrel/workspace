@@ -57,18 +57,24 @@ describe('createFile', () => {
 })
 
 describe('content factories', () => {
-	it('creates the text arm', () => {
+	it('creates the text arm, reachable without narrowing the union first', () => {
 		const content = createTextContent('hello', 'markdown')
 		expect(content).toEqual({ text: 'hello', language: 'markdown' })
 		expect(isText(content)).toBe(true)
 		expect(isBinary(content)).toBe(false)
+		// The declared return is the arm itself, so these member reads compile. Widening the
+		// return back to `FileContent` fails the typecheck here rather than at a consumer.
+		expect(content.text).toBe('hello')
+		expect(content.language).toBe('markdown')
 	})
 
-	it('creates the binary arm', () => {
+	it('creates the binary arm, reachable without narrowing the union first', () => {
 		const content = createBinaryContent('<base64>', 'image/jpeg')
 		expect(content).toEqual({ base64: '<base64>', mime: 'image/jpeg' })
 		expect(isBinary(content)).toBe(true)
 		expect(isText(content)).toBe(false)
+		expect(content.base64).toBe('<base64>')
+		expect(content.mime).toBe('image/jpeg')
 	})
 })
 

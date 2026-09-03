@@ -124,7 +124,7 @@ export class Workspace implements WorkspaceInterface {
 		for (const file of this.#files.values()) {
 			if (limit !== undefined && matches.length >= limit) break
 			if (!isText(file.content)) continue
-			const lines = file.content.text.split('\n')
+			const lines = file.content.text.split(/\r\n|\n/)
 			for (let index = 0; index < lines.length; index += 1) {
 				if (limit !== undefined && matches.length >= limit) break
 				const lineText = lines[index] ?? ''
@@ -266,7 +266,7 @@ export class Workspace implements WorkspaceInterface {
 	#splice(path: string, content: string, range: Range): void {
 		const existing = this.#files.get(path)
 		if (!existing) {
-			throw new WorkspaceError('MODALITY', `Cannot splice a range of a missing file: ${path}`, {
+			throw new WorkspaceError('MISSING', `Cannot splice a range of a missing file: ${path}`, {
 				path,
 			})
 		}

@@ -1,24 +1,13 @@
 import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
 import { createBinaryContent, createFile, createTextContent, createWorkspace } from '@src/core'
-import { describe, expect, it } from 'vitest'
 
-/** Create a plain record whose named property throws when read. */
-export function createThrowingGetterRecord(property: string): object {
-	return Object.defineProperty({}, property, {
-		enumerable: true,
-		get: throwGetter,
-	})
-}
-
-/** Create a revoked proxy for total-guard tests. */
-export function createRevokedProxy(): object {
-	const revocable = Proxy.revocable({}, {})
-	revocable.revoke()
-	return revocable.proxy
-}
-
-function throwGetter(): never {
-	throw new Error('hostile getter')
+/** One observable scenario every workspace store implementation must satisfy. */
+export interface WorkspaceStoreCase {
+	readonly name: string
+	probe(
+		store: WorkspaceStoreInterface,
+		build: (id?: string) => WorkspaceSnapshot,
+	): Promise<{ readonly actual: unknown; readonly expected: unknown }>
 }
 
 /**
@@ -36,57 +25,68 @@ export function buildWorkspaceSnapshot(id = 'scratch'): WorkspaceSnapshot {
 }
 
 /**
- * Register the shared observable contract suite for a workspace store.
+ * The shared observable contract every workspace store satisfies, carried as data.
  *
- * @param makeStore - A fresh-store factory
- * @param build - A snapshot builder
+ * Each case drives a fresh store through one scenario and returns what it observed beside what the
+ * contract requires. A test file loops the table and compares the pair, so this module states the
+ * contract and registers nothing.
  */
-export function assertWorkspaceStoreContract(
-	makeStore: () => WorkspaceStoreInterface,
-	build: (id?: string) => WorkspaceSnapshot,
-): void {
-	describe('workspace store contract', () => {
-		it('round-trips text and binary files', async () => {
-			const store = makeStore()
+export const WORKSPACE_STORE_CASES: readonly WorkspaceStoreCase[] = [
+	{
+		name: 'round-trips text and binary files',
+		async probe(store, build) {
 			const snapshot = build()
 			await store.set(snapshot)
 			const stored = await store.get(snapshot.id)
-			expect(stored).toEqual(snapshot)
-			expect(stored?.files.map((file) => file.path)).toEqual(['src/main.ts', 'icon.png'])
-		})
-
-		it('replaces a snapshot under the same id', async () => {
-			const store = makeStore()
+			return {
+				actual: { stored, paths: stored?.files.map((file) => file.path) },
+				expected: { stored: snapshot, paths: ['src/main.ts', 'icon.png'] },
+			}
+		},
+	},
+	{
+		name: 'replaces a snapshot under the same id',
+		async probe(store, build) {
 			await store.set(build('work'))
 			const replacement: WorkspaceSnapshot = {
 				id: 'work',
 				files: [createFile({ path: 'only.txt', content: createTextContent('only', 'text') })],
 			}
 			await store.set(replacement)
-			expect(await store.get('work')).toEqual(replacement)
-		})
-
-		it('deletes present values and ignores absent ids', async () => {
-			const store = makeStore()
+			return { actual: await store.get('work'), expected: replacement }
+		},
+	},
+	{
+		name: 'deletes present values and ignores absent ids',
+		async probe(store, build) {
 			const snapshot = build()
 			await store.set(snapshot)
 			await store.delete(snapshot.id)
-			expect(await store.get(snapshot.id)).toBeUndefined()
-			await expect(store.delete('absent')).resolves.toBeUndefined()
-			expect(await store.get('absent')).toBeUndefined()
-		})
-
-		it('keeps distinct ids independent', async () => {
-			const store = makeStore()
+			const deleted = await store.get(snapshot.id)
+			const resolved = await store.delete('absent')
+			return {
+				actual: { deleted, resolved, absent: await store.get('absent') },
+				expected: { deleted: undefined, resolved: undefined, absent: undefined },
+			}
+		},
+	},
+	{
+		name: 'keeps distinct ids independent',
+		async probe(store, build) {
 			const alpha = build('alpha')
 			const beta = build('beta')
 			await store.set(alpha)
 			await store.set(beta)
-			expect(await store.get('alpha')).toEqual(alpha)
-			expect(await store.get('beta')).toEqual(beta)
+			const stored = { alpha: await store.get('alpha'), beta: await store.get('beta') }
 			await store.delete('alpha')
-			expect(await store.get('alpha')).toBeUndefined()
-			expect(await store.get('beta')).toEqual(beta)
-		})
-	})
-}
+			return {
+				actual: {
+					...stored,
+					droppedAlpha: await store.get('alpha'),
+					keptBeta: await store.get('beta'),
+				},
+				expected: { alpha, beta, droppedAlpha: undefined, keptBeta: beta },
+			}
+		},
+	},
+]
