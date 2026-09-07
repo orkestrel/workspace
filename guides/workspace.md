@@ -16,7 +16,7 @@
 > day wrote those snapshots to disk would be one more implementation of that interface, not a
 > change of identity here.
 >
-> **Anyone can drive it.** An agent loop, a tool handler, and plain application code are all just
+> **Anyone can drive it.** An agent loop, a tool handler, and plain application code are all
 > callers.
 
 A `Workspace` is the live editing surface over one map of files. A `WorkspaceManager` is a registry
@@ -30,7 +30,7 @@ plus the pure functions that derive it.
 ### Contracts
 
 The data shapes, from [`types.ts`](../src/core/types.ts). Every property is readonly, and an
-absent optional field is simply absent.
+absent optional field is absent.
 
 | Name                        | Kind      | Shape / Purpose                                                                                                                                      |
 | --------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -403,7 +403,7 @@ workspace.write('silent.txt', 'still stored') // succeeds without delivering an 
 ## The registry
 
 A `WorkspaceManager` is a working set with one selection, not a global. Build one per caller, add
-the workspaces that caller should reach, and let `active` say which one is current:
+the workspaces that caller must reach, and let `active` say which one is current:
 
 ```ts
 import { createWorkspaceManager } from '@orkestrel/workspace'
@@ -472,7 +472,7 @@ await durable.delete('project')
 isWorkspaceSnapshot(await durable.get('project')) // false — it is gone
 ```
 
-`open` consults the registry first: a registered id is simply activated and returned, without
+`open` consults the registry first: a registered id is activated and returned, without
 touching the store at all. Only a miss reaches the store, and a snapshot that comes back is
 hydrated into a new workspace through the seed, registered, and made active even when the registry
 was not empty. A miss with no store, or a miss the store cannot satisfy, returns `undefined`.

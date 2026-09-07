@@ -13,7 +13,7 @@ and no dirty-state tracking — a path is a key, not a location. Durability is a
 snapshot is a plain serializable value, and a store is the thing that keeps one.
 
 Nothing here is model-specific. An agent loop, a tool handler, and plain application code are all
-just callers.
+callers.
 
 ## Install
 

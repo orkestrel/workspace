@@ -1,7 +1,7 @@
 import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
 import { createBinaryContent, createFile, createTextContent, createWorkspace } from '@src/core'
 
-/** One observable scenario every workspace store implementation must satisfy. */
+/** Represents one observable scenario every workspace store implementation must satisfy. */
 export interface WorkspaceStoreCase {
 	readonly name: string
 	probe(
@@ -11,7 +11,7 @@ export interface WorkspaceStoreCase {
 }
 
 /**
- * Build a real workspace snapshot containing text and binary files.
+ * Builds a real workspace snapshot containing text and binary files.
  *
  * @param id - The workspace identifier
  * @returns A workspace snapshot
@@ -25,7 +25,7 @@ export function buildWorkspaceSnapshot(id = 'scratch'): WorkspaceSnapshot {
 }
 
 /**
- * The shared observable contract every workspace store satisfies, carried as data.
+ * Carries the shared observable contract every workspace store satisfies, as data.
  *
  * Each case drives a fresh store through one scenario and returns what it observed beside what the
  * contract requires. A test file loops the table and compares the pair, so this module states the

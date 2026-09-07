@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest'
 // a stub.
 
 // A workspace seeded with one real binary (image) File at `icon.png` (base64 'AAAA' → 3 decoded
-// bytes). Built via the public createFile / createBinaryContent, placed through the
+// bytes). Built through the public createFile / createBinaryContent, placed through the
 // construction-time seed (the only way to seat a non-text file — the edit surface mints
 // only text). Returns the live Workspace so the modality rules run against genuine content.
 function imageWorkspace(): Workspace {
