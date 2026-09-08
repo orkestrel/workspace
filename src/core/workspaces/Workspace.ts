@@ -30,7 +30,7 @@ import {
  *
  * Whole-file edits create text files, ranged edits operate only on existing text files, and
  * binary files remain available through construction-time hydration. Mutations emit after the
- * registry has changed.
+ * file map has changed.
  *
  * @example
  * ```ts

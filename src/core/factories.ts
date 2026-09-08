@@ -26,11 +26,32 @@ import { MemoryWorkspaceStore } from './workspaces/stores/MemoryWorkspaceStore.j
  * @param input - The file path, content, and optional state
  * @returns A frozen file record
  *
- * @example
+ * @example Files and content
  * ```ts
- * import { createFile, createTextContent } from '@orkestrel/workspace'
+ * import {
+ * 	computeSize,
+ * 	countLines,
+ * 	createBinaryContent,
+ * 	createFile,
+ * 	createTextContent,
+ * 	inferLanguage,
+ * 	isBinary,
+ * 	isText,
+ * } from '@orkestrel/workspace'
  *
- * createFile({ path: 'a.txt', content: createTextContent('hello', 'text') })
+ * const note = createFile({
+ * 	path: 'notes.md',
+ * 	content: createTextContent('# Title\nBody', inferLanguage('notes.md')), // 'markdown'
+ * })
+ *
+ * note.size // 12 — UTF-8 bytes, through computeSize
+ * note.lines // 2 — through countLines
+ * note.state // 'created'
+ * isText(note.content) // true
+ *
+ * const icon = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
+ * isBinary(icon.content) // true
+ * icon.size // 3 — decoded base64 bytes, through computeDecodedSize
  * ```
  */
 export function createFile(input: FileInput): FileInterface {
@@ -44,7 +65,8 @@ export function createFile(input: FileInput): FileInterface {
 }
 
 /**
- * Creates the text arm of {@link FileContent}.
+ * Creates the text arm of {@link FileContent}, returned as {@link TextContent} rather than as
+ * the whole union.
  *
  * @param text - The text body
  * @param language - The language tag
@@ -62,7 +84,8 @@ export function createTextContent(text: string, language: string): TextContent {
 }
 
 /**
- * Creates the binary arm of {@link FileContent}.
+ * Creates the binary arm of {@link FileContent}, returned as {@link BinaryContent} rather than
+ * as the whole union.
  *
  * @param base64 - The base64 payload
  * @param mime - The binary MIME
@@ -80,7 +103,7 @@ export function createBinaryContent(base64: string, mime: BinaryMIME): BinaryCon
 }
 
 /**
- * Creates a workspace.
+ * Creates a workspace with the same identity, emitter, and seed options the constructor takes.
  *
  * @param options - Optional identity, emitter configuration, and initial files
  * @returns A working workspace
@@ -114,7 +137,8 @@ export function createMemoryWorkspaceStore(): WorkspaceStoreInterface {
 }
 
 /**
- * Creates a database-backed workspace snapshot store.
+ * Creates a database-backed workspace snapshot store, over an in-memory driver when the caller
+ * supplies none.
  *
  * @param driver - The database driver. Default: an in-memory driver.
  * @returns A workspace store backed by the supplied driver

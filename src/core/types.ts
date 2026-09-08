@@ -17,14 +17,20 @@ export interface BinaryContent {
 
 /**
  * Holds a file's immutable content: either text with a language tag or a base64 string with a
- * MIME.
+ * MIME. The union carries no discriminant field, so a caller narrows it with a guard.
  */
 export type FileContent = TextContent | BinaryContent
 
-/** Names the edit state of an immutable file value. */
+/**
+ * Names the edit state of an immutable file value: `created` for the first write to a path and
+ * `modified` for every later edit of that path.
+ */
 export type FileState = 'created' | 'modified'
 
-/** Carries the caller-supplied values used to create an immutable file. */
+/**
+ * Carries the caller-supplied values used to create an immutable file. The byte size and the line
+ * count are derived rather than supplied.
+ */
 export interface FileInput {
 	readonly path: string
 	readonly content: FileContent
@@ -82,7 +88,7 @@ export interface SearchMatch {
 	readonly content: string
 }
 
-/** Carries the tallies produced by a replacement operation. */
+/** Carries the tallies a replacement produced: the occurrences replaced and the files changed. */
 export interface ReplaceResult {
 	readonly occurrences: number
 	readonly files: number
@@ -120,7 +126,7 @@ export interface WorkspaceSnapshot {
 /** Persists workspace snapshots through an asynchronous point-access contract. */
 export interface WorkspaceStoreInterface {
 	/**
-	 * Resolves a snapshot.
+	 * Resolves a snapshot by workspace id.
 	 *
 	 * @param id - The workspace identifier
 	 * @returns The snapshot, or `undefined` when absent

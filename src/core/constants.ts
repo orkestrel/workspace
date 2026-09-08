@@ -1,7 +1,7 @@
 /**
  * Maps file extensions to language tags for text content.
  *
- * Unknown extensions intentionally fall back to `text` in
+ * The table is frozen, and an extension it does not list falls back to `text` in
  * {@link import('./helpers.js').inferLanguage}.
  */
 export const EXTENSION_LANGUAGES: Readonly<Record<string, string>> = Object.freeze({

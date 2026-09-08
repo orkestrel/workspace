@@ -35,7 +35,7 @@ export function isText(content: FileContent): content is TextContent {
 }
 
 /**
- * Checks whether content is the binary arm.
+ * Determines whether content is the binary arm.
  *
  * @param content - The file content
  * @returns True if the content carries a base64 string and a MIME; false otherwise
@@ -85,7 +85,7 @@ export function countLines(content: FileContent): number {
 }
 
 /**
- * Computes the decoded byte length of a base64 string.
+ * Computes the decoded byte length of a base64 string, arithmetically rather than by decoding it.
  *
  * @param base64 - The base64 string
  * @returns The decoded byte count

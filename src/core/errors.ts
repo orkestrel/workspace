@@ -1,6 +1,9 @@
 import type { WorkspaceErrorCode } from './types.js'
 
-/** Reports an invalid workspace edit or search operation. */
+/**
+ * Reports an invalid workspace edit or search operation, carrying a {@link WorkspaceErrorCode}
+ * and, when the operation had one, the context it ran under.
+ */
 export class WorkspaceError extends Error {
 	readonly code: WorkspaceErrorCode
 	readonly context?: Readonly<Record<string, unknown>>
@@ -26,6 +29,10 @@ export class WorkspaceError extends Error {
 
 /**
  * Narrows a caught value to a {@link WorkspaceError}.
+ *
+ * @remarks
+ * The check is one `instanceof` test, so it stays total: every input answers `true` or `false`
+ * and none throws.
  *
  * @param value - The caught value
  * @returns True if the value is a workspace error; false otherwise
