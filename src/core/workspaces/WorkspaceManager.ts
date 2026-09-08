@@ -11,7 +11,8 @@ import { isArray } from '@orkestrel/contract'
 import { Workspace } from './Workspace.js'
 
 /**
- * Provides an insertion-ordered workspace registry with an active selection.
+ * Implements `WorkspaceManagerInterface` over an insertion-ordered id map and one active id
+ * the instance owns, resolving `active` through that map on every read and holding no emitter.
  *
  * A supplied store adds lenient snapshot `open` and `save` operations. Event defaults flow into
  * workspaces created through the registry, while observability remains owned by each workspace.

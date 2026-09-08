@@ -26,7 +26,8 @@ import {
 } from '../helpers.js'
 
 /**
- * Provides a mutable path-keyed editing surface over immutable files.
+ * Implements `WorkspaceInterface` over one insertion-ordered path map the instance owns,
+ * projecting fresh arrays on every read.
  *
  * Whole-file edits create text files, ranged edits operate only on existing text files, and
  * binary files remain available through construction-time hydration. Mutations emit after the

@@ -53,7 +53,7 @@ A `Shape` cell holds an interface's data members as bare names in braces, `?` ma
 | `WorkspaceEventMap`         | type      | `{ write, remove, move, clear }`                                                                                                      | Names the events emitted after workspace mutations complete.                                                                                                                    |
 | `WorkspaceOptions`          | interface | `{ id?, on?, error?, seed? }`                                                                                                         | Configures a workspace at construction.                                                                                                                                         |
 | `WorkspaceSnapshot`         | interface | `{ id, files }`                                                                                                                       | Represents a workspace's stored state in JSON-serializable form.                                                                                                                |
-| `WorkspaceStoreInterface`   | interface | `get, set, delete`                                                                                                                    | Persists workspace snapshots through an asynchronous point-access contract.                                                                                                     |
+| `WorkspaceStoreInterface`   | interface | `{} plus get, set, delete`                                                                                                            | Persists workspace snapshots through an asynchronous point-access contract.                                                                                                     |
 | `WorkspaceSnapshotRow`      | interface | `{ id, snapshot }`                                                                                                                    | Represents the database row used to persist one opaque workspace snapshot.                                                                                                      |
 | `WorkspaceErrorCode`        | type      | `'MISSING' \| 'MODALITY' \| 'PATTERN' \| 'RANGE'`                                                                                     | Names the machine-readable failure codes raised by the workspace edit surface.                                                                                                  |
 | `WorkspaceInterface`        | interface | `{ id, emitter, count } plus file, files, read, has, search, replace, write, prepend, append, move, remove, clear, snapshot, destroy` | Represents a mutable path-keyed editing surface over immutable file values.                                                                                                     |
@@ -86,8 +86,8 @@ on its own, and the classes compose them rather than hiding them.
 | Name                 | Kind     | Signature                                                     | Summary                                                                                         |
 | -------------------- | -------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `inferLanguage`      | function | `(path: string) => string`                                    | Infers a language tag from the final file extension.                                            |
-| `isText`             | function | `(content: FileContent) => boolean`                           | Determines whether content is the text arm.                                                     |
-| `isBinary`           | function | `(content: FileContent) => boolean`                           | Determines whether content is the binary arm.                                                   |
+| `isText`             | function | `(content: FileContent) => content is TextContent`            | Determines whether content is the text arm.                                                     |
+| `isBinary`           | function | `(content: FileContent) => content is BinaryContent`          | Determines whether content is the binary arm.                                                   |
 | `computeSize`        | function | `(content: FileContent) => number`                            | Computes the byte size of file content.                                                         |
 | `countLines`         | function | `(content: FileContent) => number`                            | Counts the lines in file content.                                                               |
 | `computeDecodedSize` | function | `(base64: string) => number`                                  | Computes the decoded byte length of a base64 string, arithmetically rather than by decoding it. |
@@ -105,7 +105,7 @@ on its own, and the classes compose them rather than hiding them.
 The total guards, from [`validators.ts`](../src/core/validators.ts). Each narrows an `unknown`
 value arriving from outside the process without throwing on a hostile property access.
 
-A `Shape` cell holds an interface's data members as bare names in braces, `?` marking an optional member and `plus` introducing its call-signature members, and a type alias's own type literal with a union's arms escaped as `\|`. In a guard table a `Shape` cell holds the type the guard narrows to.
+In a guard table a `Shape` cell holds the type the guard narrows to.
 
 | Name                  | Kind     | Shape               | Summary                                               |
 | --------------------- | -------- | ------------------- | ----------------------------------------------------- |
@@ -135,12 +135,12 @@ The implementing classes, from [`Workspace.ts`](../src/core/workspaces/Workspace
 [`DatabaseWorkspaceStore.ts`](../src/core/workspaces/stores/DatabaseWorkspaceStore.ts) — each
 documented in full under its own heading following this table.
 
-| Name                     | Kind  | Summary                                                                                                                                                                                                                                                                         |
-| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Workspace`              | class | Provides a mutable path-keyed editing surface over immutable files. Whole-file edits create text files, ranged edits operate only on existing text files, and binary files remain available through construction-time hydration. Mutations emit after the file map has changed. |
-| `WorkspaceManager`       | class | Provides an insertion-ordered workspace registry with an active selection. A supplied store adds lenient snapshot `open` and `save` operations. Event defaults flow into workspaces created through the registry, while observability remains owned by each workspace.          |
-| `MemoryWorkspaceStore`   | class | Holds workspace snapshots in the current process.                                                                                                                                                                                                                               |
-| `DatabaseWorkspaceStore` | class | Persists workspace snapshots in a database table. Snapshots occupy one opaque column and are narrowed when read back from the storage boundary.                                                                                                                                 |
+| Name                     | Kind  | Summary                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Workspace`              | class | Implements `WorkspaceInterface` over one insertion-ordered path map the instance owns, projecting fresh arrays on every read. Whole-file edits create text files, ranged edits operate only on existing text files, and binary files remain available through construction-time hydration. Mutations emit after the file map has changed.                                          |
+| `WorkspaceManager`       | class | Implements `WorkspaceManagerInterface` over an insertion-ordered id map and one active id the instance owns, resolving `active` through that map on every read and holding no emitter. A supplied store adds lenient snapshot `open` and `save` operations. Event defaults flow into workspaces created through the registry, while observability remains owned by each workspace. |
+| `MemoryWorkspaceStore`   | class | Holds workspace snapshots in the current process.                                                                                                                                                                                                                                                                                                                                  |
+| `DatabaseWorkspaceStore` | class | Persists workspace snapshots in a database table. Snapshots occupy one opaque column and are narrowed when read back from the storage boundary.                                                                                                                                                                                                                                    |
 
 ### `Workspace`
 
@@ -428,7 +428,7 @@ workspace.write('silent.txt', 'still stored') // succeeds without delivering an 
 ## The registry
 
 A `WorkspaceManager` is a working set with one selection, not a global. Build one per caller, add
-the workspaces that caller must reach, and let `active` say which one is current:
+the workspaces that caller needs to reach, and let `active` say which one is current:
 
 ```ts
 import { createWorkspaceManager } from '@orkestrel/workspace'
