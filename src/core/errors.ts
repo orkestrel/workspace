@@ -1,4 +1,5 @@
 import type { WorkspaceErrorCode } from './types.js'
+import { isInstance } from '@orkestrel/contract'
 
 /**
  * Reports an invalid workspace edit or search operation, carrying a {@link WorkspaceErrorCode}
@@ -43,5 +44,5 @@ export class WorkspaceError extends Error {
  * ```
  */
 export function isWorkspaceError(value: unknown): value is WorkspaceError {
-	return value instanceof WorkspaceError
+	return isInstance(value, WorkspaceError)
 }
