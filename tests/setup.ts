@@ -1,5 +1,12 @@
 import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
-import { createBinaryContent, createFile, createTextContent, createWorkspace } from '@src/core'
+import {
+	createBinaryContent,
+	createFile,
+	createTextContent,
+	createWorkspace,
+	Workspace,
+} from '@src/core'
+import { createRecorder } from '@orkestrel/test'
 
 /** Represents one observable scenario every workspace store implementation must satisfy. */
 export interface WorkspaceStoreCase {
@@ -90,3 +97,43 @@ export const WORKSPACE_STORE_CASES: readonly WorkspaceStoreCase[] = [
 		},
 	},
 ]
+
+/**
+ * Implements the persistence interface over a map.
+ *
+ * The case table under test takes a store, so a conforming store is its input. This one is
+ * written here rather than taken from `@src/core` so the table is not proven against the same
+ * implementation the mirrored store suites already drive it with.
+ */
+export class MapWorkspaceStore implements WorkspaceStoreInterface {
+	readonly #snapshots = new Map<string, WorkspaceSnapshot>()
+
+	get(id: string): Promise<WorkspaceSnapshot | undefined> {
+		return Promise.resolve(this.#snapshots.get(id))
+	}
+
+	set(snapshot: WorkspaceSnapshot): Promise<void> {
+		this.#snapshots.set(snapshot.id, snapshot)
+		return Promise.resolve()
+	}
+
+	delete(id: string): Promise<void> {
+		this.#snapshots.delete(id)
+		return Promise.resolve()
+	}
+}
+
+/** Records each store supplied to the shared cases. */
+export const seen = createRecorder<readonly [WorkspaceStoreInterface]>()
+
+/** Creates a store and records its identity for the case-population proof. */
+export function createRecordedStore(): WorkspaceStoreInterface {
+	const store = new MapWorkspaceStore()
+	seen.handler(store)
+	return store
+}
+/** Creates a workspace containing a real binary image file. */
+export function imageWorkspace(): Workspace {
+	const image = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
+	return new Workspace({ seed: [image] })
+}

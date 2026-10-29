@@ -519,6 +519,10 @@ change nothing about what a workspace is.
 
 ## Failures
 
+The error guard recognizes the error's own identity brand across package copies and
+module formats. It accepts subclasses regardless of their `name` and refuses
+transparent proxies, unbranded look-alikes, and plain branded objects.
+
 A code describes every refusal, and `WorkspaceError` carries the code plus the context the
 operation had:
 

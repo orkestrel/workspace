@@ -79,9 +79,7 @@ export function computeSize(content: FileContent): number {
 export function countLines(content: FileContent): number {
 	if (!isText(content)) return 0
 	if (content.text.length === 0) return 0
-	let count = 1
-	for (const character of content.text) if (character === '\n') count += 1
-	return count
+	return content.text.split(/\r\n|\n/).length
 }
 
 /**
@@ -96,9 +94,7 @@ export function countLines(content: FileContent): number {
  * ```
  */
 export function computeDecodedSize(base64: string): number {
-	let padding = 0
-	if (base64.endsWith('==')) padding = 2
-	else if (base64.endsWith('=')) padding = 1
+	const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0
 	return Math.floor((base64.length * 3) / 4) - padding
 }
 
@@ -170,12 +166,10 @@ export function clampRange(text: string, range: Range): Range {
  */
 export function offsetAt(text: string, position: Position): number {
 	const lines = text.split('\n')
-	let offset = 0
-	for (let index = 0; index < position.line - 1 && index < lines.length; index += 1) {
-		offset += (lines[index]?.length ?? 0) + 1
-	}
-	offset += position.column - 1
-	return Math.min(offset, text.length)
+	const offset = lines
+		.filter((_, index) => index < position.line - 1)
+		.reduce((total, line) => total + line.length + 1, 0)
+	return Math.min(offset + (position.column - 1), text.length)
 }
 
 /**

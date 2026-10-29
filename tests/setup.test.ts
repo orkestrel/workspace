@@ -1,50 +1,11 @@
-import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
 import { roundTripJSON } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { buildWorkspaceSnapshot, WORKSPACE_STORE_CASES } from './setup.js'
-
-// The subject is `tests/setup.ts`, the workspace's shared test infrastructure, and nothing it is
-// built from. Production behavior is proven by the mirrored suites under `tests/src/`; every
-// expectation here is a literal or a second route (a JSON round trip, a locally written store)
-// that the module cannot share with the value it produces.
-//
-// `tests/setup.ts` is host-independent, so the `setup` project's Node environment reaches every
-// contract it exports and no half of it is deferred to another project.
-
-/**
- * A Map-backed store implementing the real persistence interface.
- *
- * The case table under test takes a store, so a conforming store is its input. This one is
- * written here rather than taken from `@src/core` so the table is not proven against the same
- * implementation the mirrored store suites already drive it with.
- */
-class MapWorkspaceStore implements WorkspaceStoreInterface {
-	readonly #snapshots = new Map<string, WorkspaceSnapshot>()
-
-	get(id: string): Promise<WorkspaceSnapshot | undefined> {
-		return Promise.resolve(this.#snapshots.get(id))
-	}
-
-	set(snapshot: WorkspaceSnapshot): Promise<void> {
-		this.#snapshots.set(snapshot.id, snapshot)
-		return Promise.resolve()
-	}
-
-	delete(id: string): Promise<void> {
-		this.#snapshots.delete(id)
-		return Promise.resolve()
-	}
-}
-
-/** Every store a case asked for, in the order it asked. */
-const seen: WorkspaceStoreInterface[] = []
-
-/** Hand a case a conforming store and record which one it received. */
-function createRecordedStore(): WorkspaceStoreInterface {
-	const store = new MapWorkspaceStore()
-	seen.push(store)
-	return store
-}
+import {
+	buildWorkspaceSnapshot,
+	createRecordedStore,
+	seen,
+	WORKSPACE_STORE_CASES,
+} from './setup.js'
 
 describe('buildWorkspaceSnapshot', () => {
 	it('defaults its id to scratch and carries a supplied id through', () => {
@@ -104,7 +65,7 @@ describe('WORKSPACE_STORE_CASES', () => {
 	it('took a fresh store for every case it carries', () => {
 		// Registration order puts this case after the loop, so `seen` holds one entry per case the
 		// table carries. No entry repeats, so no case inherited another case's state.
-		expect(seen.length).toBe(WORKSPACE_STORE_CASES.length)
-		expect(new Set(seen).size).toBe(seen.length)
+		expect(seen.count).toBe(WORKSPACE_STORE_CASES.length)
+		expect(new Set(seen.calls.map(([store]) => store)).size).toBe(seen.count)
 	})
 })

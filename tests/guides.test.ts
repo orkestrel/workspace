@@ -3,6 +3,7 @@
 // package's own, as is the executed section that closes the file.
 
 import type { WorkspaceEventMap } from '@src/core'
+import { attempt } from '@orkestrel/contract'
 import { GuideCommand } from '@orkestrel/guide/server'
 import { readInventory } from '@orkestrel/test/server'
 import { createVitest } from 'vitest/node'
@@ -390,13 +391,8 @@ await new GuideCommand({
 
 		it('failures — a pattern source that will not compile carries the PATTERN code', () => {
 			const workspace = createWorkspace()
-			let thrown: unknown
-
-			try {
-				workspace.search('(', { regex: true })
-			} catch (error) {
-				thrown = error
-			}
+			const outcome = attempt(() => workspace.search('(', { regex: true }))
+			const thrown = outcome.success ? undefined : outcome.error
 
 			expect(isWorkspaceError(thrown)).toBe(true)
 			expect(isWorkspaceError(thrown) && thrown.code).toBe('PATTERN')

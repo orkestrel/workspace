@@ -1,5 +1,5 @@
 import type { WorkspaceErrorCode } from './types.js'
-import { isInstance } from '@orkestrel/contract'
+import { holds, INTRINSICS, isObject } from '@orkestrel/contract'
 
 /**
  * Reports an invalid workspace edit or search operation, carrying a {@link WorkspaceErrorCode}
@@ -22,6 +22,7 @@ export class WorkspaceError extends Error {
 		context?: Readonly<Record<string, unknown>>,
 	) {
 		super(message)
+		INTRINSICS.define(this, Symbol.for('@orkestrel/workspace.WorkspaceError'), { value: this })
 		this.name = 'WorkspaceError'
 		this.code = code
 		if (context !== undefined) this.context = context
@@ -32,8 +33,8 @@ export class WorkspaceError extends Error {
  * Narrows a caught value to a {@link WorkspaceError}.
  *
  * @remarks
- * The check is one `instanceof` test, so it stays total: every input answers `true` or `false`
- * and none throws.
+ * Checks the identity brand and declared members across package copies, accepting subclasses
+ * and refusing transparent proxies. Inspection failures return false.
  *
  * @param value - The caught value
  * @returns True if the value is a workspace error; false otherwise
@@ -44,5 +45,14 @@ export class WorkspaceError extends Error {
  * ```
  */
 export function isWorkspaceError(value: unknown): value is WorkspaceError {
-	return isInstance(value, WorkspaceError)
+	return holds(() => {
+		if (!(value instanceof Error) || INTRINSICS.prototype(value) === Error.prototype) return false
+		const brand = INTRINSICS.describe(value, Symbol.for('@orkestrel/workspace.WorkspaceError'))
+		if (brand?.value !== value) return false
+		const code: unknown = INTRINSICS.reflect.read(value, 'code')
+		if (code !== 'MISSING' && code !== 'MODALITY' && code !== 'PATTERN' && code !== 'RANGE')
+			return false
+		const context: unknown = INTRINSICS.reflect.read(value, 'context')
+		return context === undefined || isObject(context)
+	})
 }

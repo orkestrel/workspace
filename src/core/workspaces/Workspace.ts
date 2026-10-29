@@ -126,12 +126,10 @@ export class Workspace implements WorkspaceInterface {
 			if (limit !== undefined && matches.length >= limit) break
 			if (!isText(file.content)) continue
 			const lines = file.content.text.split(/\r\n|\n/)
-			for (let index = 0; index < lines.length; index += 1) {
+			for (const [index, lineText] of lines.entries()) {
 				if (limit !== undefined && matches.length >= limit) break
-				const lineText = lines[index] ?? ''
 				pattern.lastIndex = 0
-				let hit = pattern.exec(lineText)
-				while (hit !== null) {
+				for (const hit of lineText.matchAll(pattern)) {
 					if (limit !== undefined && matches.length >= limit) break
 					matches.push({
 						path: file.path,
@@ -140,8 +138,6 @@ export class Workspace implements WorkspaceInterface {
 						length: hit[0].length,
 						content: lineText,
 					})
-					if (hit[0].length === 0) pattern.lastIndex += 1
-					hit = pattern.exec(lineText)
 				}
 			}
 		}
@@ -151,26 +147,31 @@ export class Workspace implements WorkspaceInterface {
 	replace(query: string, replacement: string, options?: SearchOptions): ReplaceResult {
 		const pattern = this.#pattern(query, options)
 		const limit = options?.limit
-		let occurrences = 0
-		let files = 0
+		const changes: number[] = []
 		for (const [path, file] of this.#files) {
+			const occurrences = changes.reduce((total, count) => total + count, 0)
 			if (limit !== undefined && occurrences >= limit) break
 			if (!isText(file.content)) continue
 			const remaining = limit === undefined ? undefined : limit - occurrences
-			let count = 0
 			pattern.lastIndex = 0
-			const next = file.content.text.replace(pattern, (match) => {
-				if (remaining !== undefined && count >= remaining) return match
-				count += 1
-				return replacement
-			})
+			const text = file.content.text
+			const matches = Array.from(text.matchAll(pattern))
+			const count = matches.filter(
+				(_, index) => remaining === undefined || !(index >= remaining),
+			).length
+			const positions = matches.keys()
+			const next = text.replace(pattern, (match) =>
+				(positions.next().value ?? Number.POSITIVE_INFINITY) < count ? replacement : match,
+			)
 			if (count > 0) {
-				occurrences += count
-				files += 1
+				changes.push(count)
 				this.write(path, next)
 			}
 		}
-		return { occurrences, files }
+		return {
+			occurrences: changes.reduce((total, count) => total + count, 0),
+			files: changes.length,
+		}
 	}
 
 	write(path: string, content: string): void
@@ -215,11 +216,10 @@ export class Workspace implements WorkspaceInterface {
 	move(mapping: Readonly<Record<string, string>>): boolean
 	move(from: string | Readonly<Record<string, string>>, to?: string): boolean {
 		if (isRecord(from)) {
-			let moved = true
-			for (const [one, target] of Object.entries(from)) {
-				if (!this.#move(one, target)) moved = false
-			}
-			return moved
+			return Object.entries(from).reduce(
+				(moved, [one, target]) => this.#move(one, target) && moved,
+				true,
+			)
 		}
 		if (to === undefined) return false
 		return this.#move(from, to)
@@ -229,11 +229,7 @@ export class Workspace implements WorkspaceInterface {
 	remove(paths: readonly string[]): boolean
 	remove(path: string | readonly string[]): boolean {
 		if (isArray(path)) {
-			let removed = true
-			for (const one of path) {
-				if (!this.#remove(one)) removed = false
-			}
-			return removed
+			return Iterator.from(path).reduce((removed, one) => this.#remove(one) && removed, true)
 		}
 		return this.#remove(path)
 	}
@@ -293,30 +289,30 @@ export class Workspace implements WorkspaceInterface {
 
 	#prepend(path: string, content: string): void {
 		const existing = this.#files.get(path)
-		let text = ''
-		if (existing) {
-			if (!isText(existing.content)) {
-				throw new WorkspaceError('MODALITY', `Cannot prepend text to a binary file: ${path}`, {
-					path,
-				})
-			}
-			text = existing.content.text
+		if (existing === undefined) {
+			this.#write(path, content)
+			return
 		}
-		this.#write(path, content + text)
+		if (!isText(existing.content)) {
+			throw new WorkspaceError('MODALITY', `Cannot prepend text to a binary file: ${path}`, {
+				path,
+			})
+		}
+		this.#write(path, content + existing.content.text)
 	}
 
 	#append(path: string, content: string): void {
 		const existing = this.#files.get(path)
-		let text = ''
-		if (existing) {
-			if (!isText(existing.content)) {
-				throw new WorkspaceError('MODALITY', `Cannot append text to a binary file: ${path}`, {
-					path,
-				})
-			}
-			text = existing.content.text
+		if (existing === undefined) {
+			this.#write(path, content)
+			return
 		}
-		this.#write(path, text + content)
+		if (!isText(existing.content)) {
+			throw new WorkspaceError('MODALITY', `Cannot append text to a binary file: ${path}`, {
+				path,
+			})
+		}
+		this.#write(path, existing.content.text + content)
 	}
 
 	#move(from: string, to: string): boolean {

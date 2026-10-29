@@ -1,3 +1,4 @@
+import { attempt } from '@orkestrel/contract'
 import type { WorkspaceEventMap } from '@src/core'
 import {
 	createBinaryContent,
@@ -10,6 +11,7 @@ import {
 } from '@src/core'
 import { createRecorder, createRecorders } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
+import { imageWorkspace } from '../../../setup.js'
 
 // The in-memory Workspace edit surface (real data, no mocks). Every edit
 // replaces the immutable File at a path (transitioning created → modified); the modality
@@ -18,15 +20,6 @@ import { describe, expect, it } from 'vitest'
 // (built with the public createFile + createBinaryContent) is placed through the Workspace's
 // optional construction-time seed — the same hydration seam a future FileStore uses — never
 // a stub.
-
-// A workspace seeded with one real binary (image) File at `icon.png` (base64 'AAAA' → 3 decoded
-// bytes). Built by using the public `createFile` / `createBinaryContent`, placed through the
-// construction-time seed (the only way to seat a non-text file — the edit surface mints
-// only text). Returns the live Workspace so the modality rules run against genuine content.
-function imageWorkspace(): Workspace {
-	const image = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
-	return new Workspace({ seed: [image] })
-}
 
 describe('Workspace — write / read round-trip + state transition', () => {
 	it('writes a new text file as created and reads it back', () => {
@@ -669,12 +662,8 @@ describe('isWorkspaceError', () => {
 		const workspace = createWorkspace()
 		// Capture the thrown value WITHOUT a conditional expect — run the throwing call and
 		// keep whatever it threw, then assert unconditionally.
-		let thrown: unknown
-		try {
-			workspace.search('(', { regex: true })
-		} catch (error) {
-			thrown = error
-		}
+		const outcome = attempt(() => workspace.search('(', { regex: true }))
+		const thrown = outcome.success ? undefined : outcome.error
 
 		expect(isWorkspaceError(thrown)).toBe(true)
 		expect(isWorkspaceError(thrown) && thrown.code).toBe('PATTERN')
