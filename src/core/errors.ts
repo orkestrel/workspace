@@ -1,5 +1,5 @@
 import type { WorkspaceErrorCode } from './types.js'
-import { holds, INTRINSICS, isObject } from '@orkestrel/contract'
+import { holds, INTRINSICS, isFunction, isObject } from '@orkestrel/contract'
 
 /**
  * Reports an invalid workspace edit or search operation, carrying a {@link WorkspaceErrorCode}
@@ -53,6 +53,6 @@ export function isWorkspaceError(value: unknown): value is WorkspaceError {
 		if (code !== 'MISSING' && code !== 'MODALITY' && code !== 'PATTERN' && code !== 'RANGE')
 			return false
 		const context: unknown = INTRINSICS.reflect.read(value, 'context')
-		return context === undefined || isObject(context)
+		return context === undefined || isObject(context) || isFunction(context)
 	})
 }
