@@ -60,7 +60,7 @@ await new GuideCommand({
 		escapeRegExp,
 		inferLanguage,
 		isBinary,
-		isText,
+		isTextContent,
 		isWorkspaceError,
 		isWorkspaceSnapshot,
 		rangeOf,
@@ -242,7 +242,7 @@ await new GuideCommand({
 			expect(note.size).toBe(12)
 			expect(note.lines).toBe(2)
 			expect(note.state).toBe('created')
-			expect(isText(note.content)).toBe(true)
+			expect(isTextContent(note.content)).toBe(true)
 
 			const icon = createFile({
 				path: 'icon.png',

@@ -1,5 +1,5 @@
 import {
-	clampPosition,
+	clampCaret,
 	clampRange,
 	computeDecodedSize,
 	computeSize,
@@ -10,13 +10,14 @@ import {
 	EXTENSION_LANGUAGES,
 	inferLanguage,
 	isBinary,
-	isText,
+	isTextContent,
 	isValidRange,
 	offsetAt,
 	rangeOf,
 	sliceRange,
 	spliceRange,
 } from '@src/core'
+import type { Caret } from '@src/core'
 import { describe, expect, it } from 'vitest'
 
 describe('inferLanguage', () => {
@@ -38,9 +39,9 @@ describe('content guards', () => {
 	it('distinguishes text and binary content', () => {
 		const text = createTextContent('hi', 'text')
 		const image = createBinaryContent('AAAA', 'image/png')
-		expect(isText(text)).toBe(true)
+		expect(isTextContent(text)).toBe(true)
 		expect(isBinary(text)).toBe(false)
-		expect(isText(image)).toBe(false)
+		expect(isTextContent(image)).toBe(false)
 		expect(isBinary(image)).toBe(true)
 	})
 })
@@ -89,14 +90,21 @@ describe('range helpers', () => {
 		expect(isValidRange(rangeOf(1, 1, 1, 0))).toBe(false)
 	})
 
-	it('clamps positions and ranges to their addressed lines', () => {
-		expect(clampPosition('ab\ncd', { line: 9, column: 9 })).toEqual({ line: 2, column: 3 })
-		expect(clampPosition('ab\ncd', { line: 0, column: 0 })).toEqual({ line: 1, column: 1 })
-		expect(clampPosition('ab\ncdef', { line: 1, column: 99 })).toEqual({ line: 1, column: 3 })
+	it('clamps carets and ranges to their addressed lines', () => {
+		expect(clampCaret('ab\ncd', { line: 9, column: 9 })).toEqual({ line: 2, column: 3 })
+		expect(clampCaret('ab\ncd', { line: 0, column: 0 })).toEqual({ line: 1, column: 1 })
+		expect(clampCaret('ab\ncdef', { line: 1, column: 99 })).toEqual({ line: 1, column: 3 })
 		expect(clampRange('ab\ncd', rangeOf(1, 1, 9, 9))).toEqual(rangeOf(1, 1, 2, 3))
 	})
 
-	it('converts positions to offsets', () => {
+	it('keeps an in-bounds caret and locates its offset', () => {
+		const caret: Caret = { line: 2, column: 2 }
+		expect(clampCaret('ab\ncd', caret)).toEqual({ line: 2, column: 2 })
+		expect(offsetAt('ab\ncd', caret)).toBe(4)
+		expect(sliceRange('ab\ncd', { start: caret, end: { line: 2, column: 3 } })).toBe('d')
+	})
+
+	it('converts carets to offsets', () => {
 		expect(offsetAt('ab\ncd', { line: 1, column: 1 })).toBe(0)
 		expect(offsetAt('ab\ncd', { line: 1, column: 3 })).toBe(2)
 		expect(offsetAt('ab\ncd', { line: 2, column: 1 })).toBe(3)

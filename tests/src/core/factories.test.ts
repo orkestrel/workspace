@@ -4,7 +4,7 @@ import {
 	createTextContent,
 	createWorkspace,
 	isBinary,
-	isText,
+	isTextContent,
 } from '@src/core'
 import { describe, expect, it } from 'vitest'
 
@@ -60,7 +60,7 @@ describe('content factories', () => {
 	it('creates the text arm, reachable without narrowing the union first', () => {
 		const content = createTextContent('hello', 'markdown')
 		expect(content).toEqual({ text: 'hello', language: 'markdown' })
-		expect(isText(content)).toBe(true)
+		expect(isTextContent(content)).toBe(true)
 		expect(isBinary(content)).toBe(false)
 		// The declared return is the arm itself, so these member reads compile. Widening the
 		// return back to `FileContent` fails the typecheck here rather than at a consumer.
@@ -72,7 +72,7 @@ describe('content factories', () => {
 		const content = createBinaryContent('<base64>', 'image/jpeg')
 		expect(content).toEqual({ base64: '<base64>', mime: 'image/jpeg' })
 		expect(isBinary(content)).toBe(true)
-		expect(isText(content)).toBe(false)
+		expect(isTextContent(content)).toBe(false)
 		expect(content.base64).toBe('<base64>')
 		expect(content.mime).toBe('image/jpeg')
 	})

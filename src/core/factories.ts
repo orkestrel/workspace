@@ -36,7 +36,7 @@ import { MemoryWorkspaceStore } from './workspaces/stores/MemoryWorkspaceStore.j
  * 	createTextContent,
  * 	inferLanguage,
  * 	isBinary,
- * 	isText,
+ * 	isTextContent,
  * } from '@orkestrel/workspace'
  *
  * const note = createFile({
@@ -47,7 +47,7 @@ import { MemoryWorkspaceStore } from './workspaces/stores/MemoryWorkspaceStore.j
  * note.size // 12 — UTF-8 bytes, through computeSize
  * note.lines // 2 — through countLines
  * note.state // 'created'
- * isText(note.content) // true
+ * isTextContent(note.content) // true
  *
  * const icon = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
  * isBinary(icon.content) // true

@@ -4,7 +4,7 @@ import {
 	createBinaryContent,
 	createFile,
 	createWorkspace,
-	isText,
+	isTextContent,
 	isWorkspaceError,
 	rangeOf,
 	Workspace,
@@ -49,15 +49,15 @@ describe('Workspace — write / read round-trip + state transition', () => {
 
 		workspace.write('main.ts', 'x')
 		const created = workspace.file('main.ts')
-		expect(created !== undefined && isText(created.content) && created.content.language).toBe(
-			'typescript',
-		)
+		expect(
+			created !== undefined && isTextContent(created.content) && created.content.language,
+		).toBe('typescript')
 
 		workspace.write('main.ts', 'y')
 		const modified = workspace.file('main.ts')
-		expect(modified !== undefined && isText(modified.content) && modified.content.language).toBe(
-			'typescript',
-		)
+		expect(
+			modified !== undefined && isTextContent(modified.content) && modified.content.language,
+		).toBe('typescript')
 	})
 
 	it('mints a NEW immutable File on each edit (never mutates in place)', () => {
@@ -69,8 +69,8 @@ describe('Workspace — write / read round-trip + state transition', () => {
 		const after = workspace.file('a.ts')
 
 		expect(before).not.toBe(after)
-		expect(before !== undefined && isText(before.content) && before.content.text).toBe('one')
-		expect(after !== undefined && isText(after.content) && after.content.text).toBe('two')
+		expect(before !== undefined && isTextContent(before.content) && before.content.text).toBe('one')
+		expect(after !== undefined && isTextContent(after.content) && after.content.text).toBe('two')
 	})
 
 	it('reads an absent path as undefined', () => {
@@ -590,7 +590,7 @@ describe('Workspace — modality matrix (text-only ops on an image file)', () =>
 
 		expect(workspace.read('icon.png')).toBe('now text')
 		const retyped = workspace.file('icon.png')
-		expect(retyped !== undefined && isText(retyped.content)).toBe(true)
+		expect(retyped !== undefined && isTextContent(retyped.content)).toBe(true)
 		expect(workspace.file('icon.png')?.state).toBe('modified') // it existed → modified
 	})
 })
@@ -713,7 +713,7 @@ describe('Workspace — construction-time seed (the hydration seam)', () => {
 		expect(workspace.count).toBe(2)
 		expect(workspace.files().map((file) => file.path)).toEqual(['icon.png', 'a.ts'])
 		const seededImage = workspace.file('icon.png')
-		expect(seededImage !== undefined && !isText(seededImage.content)).toBe(true)
+		expect(seededImage !== undefined && !isTextContent(seededImage.content)).toBe(true)
 		expect(workspace.read('a.ts')).toBe('x')
 		expect(writes).toEqual([])
 	})

@@ -19,7 +19,7 @@ import {
 	clampRange,
 	escapeRegExp,
 	inferLanguage,
-	isText,
+	isTextContent,
 	isValidRange,
 	sliceRange,
 	spliceRange,
@@ -93,14 +93,14 @@ export class Workspace implements WorkspaceInterface {
 			const result: Record<string, string> = {}
 			for (const one of path) {
 				const file = this.#files.get(one)
-				if (file && isText(file.content)) result[one] = file.content.text
+				if (file && isTextContent(file.content)) result[one] = file.content.text
 			}
 			return result
 		}
 		const file = this.#files.get(path)
 		if (!file) return undefined
-		if (!range) return isText(file.content) ? file.content.text : undefined
-		if (!isText(file.content)) {
+		if (!range) return isTextContent(file.content) ? file.content.text : undefined
+		if (!isTextContent(file.content)) {
 			throw new WorkspaceError('MODALITY', `Cannot read a range of a binary file: ${path}`, {
 				path,
 			})
@@ -124,7 +124,7 @@ export class Workspace implements WorkspaceInterface {
 		const matches: SearchMatch[] = []
 		for (const file of this.#files.values()) {
 			if (limit !== undefined && matches.length >= limit) break
-			if (!isText(file.content)) continue
+			if (!isTextContent(file.content)) continue
 			const lines = file.content.text.split(/\r\n|\n/)
 			for (const [index, lineText] of lines.entries()) {
 				if (limit !== undefined && matches.length >= limit) break
@@ -151,7 +151,7 @@ export class Workspace implements WorkspaceInterface {
 		for (const [path, file] of this.#files) {
 			const occurrences = changes.reduce((total, count) => total + count, 0)
 			if (limit !== undefined && occurrences >= limit) break
-			if (!isText(file.content)) continue
+			if (!isTextContent(file.content)) continue
 			const remaining = limit === undefined ? undefined : limit - occurrences
 			pattern.lastIndex = 0
 			const text = file.content.text
@@ -250,7 +250,7 @@ export class Workspace implements WorkspaceInterface {
 	#write(path: string, content: string): void {
 		const existing = this.#files.get(path)
 		const language =
-			existing && isText(existing.content) ? existing.content.language : inferLanguage(path)
+			existing && isTextContent(existing.content) ? existing.content.language : inferLanguage(path)
 		const file = createFile({
 			path,
 			content: { text: content, language },
@@ -267,7 +267,7 @@ export class Workspace implements WorkspaceInterface {
 				path,
 			})
 		}
-		if (!isText(existing.content)) {
+		if (!isTextContent(existing.content)) {
 			throw new WorkspaceError('MODALITY', `Cannot splice a range of a binary file: ${path}`, {
 				path,
 			})
@@ -293,7 +293,7 @@ export class Workspace implements WorkspaceInterface {
 			this.#write(path, content)
 			return
 		}
-		if (!isText(existing.content)) {
+		if (!isTextContent(existing.content)) {
 			throw new WorkspaceError('MODALITY', `Cannot prepend text to a binary file: ${path}`, {
 				path,
 			})
@@ -307,7 +307,7 @@ export class Workspace implements WorkspaceInterface {
 			this.#write(path, content)
 			return
 		}
-		if (!isText(existing.content)) {
+		if (!isTextContent(existing.content)) {
 			throw new WorkspaceError('MODALITY', `Cannot append text to a binary file: ${path}`, {
 				path,
 			})

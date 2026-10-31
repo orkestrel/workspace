@@ -1,4 +1,4 @@
-import type { BinaryContent, FileContent, Position, Range, TextContent } from './types.js'
+import type { BinaryContent, Caret, FileContent, Range, TextContent } from './types.js'
 import { EXTENSION_LANGUAGES } from './constants.js'
 
 /**
@@ -27,10 +27,10 @@ export function inferLanguage(path: string): string {
  *
  * @example
  * ```ts
- * isText({ text: 'hello', language: 'text' }) // true
+ * isTextContent({ text: 'hello', language: 'text' }) // true
  * ```
  */
-export function isText(content: FileContent): content is TextContent {
+export function isTextContent(content: FileContent): content is TextContent {
 	return 'text' in content
 }
 
@@ -61,7 +61,7 @@ export function isBinary(content: FileContent): content is BinaryContent {
  * ```
  */
 export function computeSize(content: FileContent): number {
-	if (isText(content)) return new TextEncoder().encode(content.text).length
+	if (isTextContent(content)) return new TextEncoder().encode(content.text).length
 	return computeDecodedSize(content.base64)
 }
 
@@ -77,7 +77,7 @@ export function computeSize(content: FileContent): number {
  * ```
  */
 export function countLines(content: FileContent): number {
-	if (!isText(content)) return 0
+	if (!isTextContent(content)) return 0
 	if (content.text.length === 0) return 0
 	return content.text.split(/\r\n|\n/).length
 }
@@ -102,7 +102,7 @@ export function computeDecodedSize(base64: string): number {
  * Determines whether a 1-based range is structurally valid.
  *
  * @param range - The range to inspect
- * @returns True if both positions are positive and ordered; false otherwise
+ * @returns True if both carets are positive and ordered; false otherwise
  *
  * @example
  * ```ts
@@ -117,27 +117,27 @@ export function isValidRange(range: Range): boolean {
 }
 
 /**
- * Clamps a position to text bounds.
+ * Clamps a caret to text bounds.
  *
  * @param text - The addressed text
- * @param position - The requested position
- * @returns The clamped position
+ * @param caret - The requested caret
+ * @returns The clamped caret
  *
  * @example
  * ```ts
- * clampPosition('ab', { line: 9, column: 9 }) // { line: 1, column: 3 }
+ * clampCaret('ab', { line: 9, column: 9 }) // { line: 1, column: 3 }
  * ```
  */
-export function clampPosition(text: string, position: Position): Position {
+export function clampCaret(text: string, caret: Caret): Caret {
 	const lines = text.split('\n')
-	const line = Math.max(1, Math.min(position.line, lines.length))
+	const line = Math.max(1, Math.min(caret.line, lines.length))
 	const lineText = lines[line - 1] ?? ''
-	const column = Math.max(1, Math.min(position.column, lineText.length + 1))
+	const column = Math.max(1, Math.min(caret.column, lineText.length + 1))
 	return { line, column }
 }
 
 /**
- * Clamps both positions in a range to text bounds.
+ * Clamps both carets in a range to text bounds.
  *
  * @param text - The addressed text
  * @param range - The requested range
@@ -149,14 +149,14 @@ export function clampPosition(text: string, position: Position): Position {
  * ```
  */
 export function clampRange(text: string, range: Range): Range {
-	return { start: clampPosition(text, range.start), end: clampPosition(text, range.end) }
+	return { start: clampCaret(text, range.start), end: clampCaret(text, range.end) }
 }
 
 /**
- * Converts a 1-based position to a zero-based string offset.
+ * Converts a 1-based caret to a zero-based string offset.
  *
  * @param text - The addressed text
- * @param position - The requested position
+ * @param caret - The requested caret
  * @returns The bounded string offset
  *
  * @example
@@ -164,12 +164,12 @@ export function clampRange(text: string, range: Range): Range {
  * offsetAt('ab\ncd', { line: 2, column: 1 }) // 3
  * ```
  */
-export function offsetAt(text: string, position: Position): number {
+export function offsetAt(text: string, caret: Caret): number {
 	const lines = text.split('\n')
 	const offset = lines
-		.filter((_, index) => index < position.line - 1)
+		.filter((_, index) => index < caret.line - 1)
 		.reduce((total, line) => total + line.length + 1, 0)
-	return Math.min(offset + (position.column - 1), text.length)
+	return Math.min(offset + (caret.column - 1), text.length)
 }
 
 /**

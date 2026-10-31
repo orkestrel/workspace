@@ -47,15 +47,15 @@ export interface FileInterface {
 }
 
 /** Locates a 1-based caret inside text. */
-export interface Position {
+export interface Caret {
 	readonly line: number
 	readonly column: number
 }
 
 /** Represents a half-open text span whose start is inclusive and end is exclusive. */
 export interface Range {
-	readonly start: Position
-	readonly end: Position
+	readonly start: Caret
+	readonly end: Caret
 }
 
 /** Carries the content and clamped span returned by a ranged read. */
