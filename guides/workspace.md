@@ -33,8 +33,6 @@ documented under [`## Methods`](#methods), and its readonly data members stay he
 `emitter`, and `count` on `WorkspaceInterface`, `count` and `active` on
 `WorkspaceManagerInterface`, and none on `WorkspaceStoreInterface`.
 
-A `Shape` cell holds an interface's data members as bare names in braces, `?` marking an optional member and `plus` introducing its call-signature members, and a type alias's own type literal with a union's arms escaped as `\|`.
-
 | Name                        | Kind      | Signature                                                                                                                                                                        | Summary                                                                                                                                                                         |
 | --------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BinaryMIME`                | type      | `'image/png' \| 'image/jpeg' \| 'image/gif' \| 'image/webp'`                                                                                                                     | Names the MIME labels a binary `FileContent` arm supports.                                                                                                                      |
@@ -61,8 +59,6 @@ A `Shape` cell holds an interface's data members as bare names in braces, `?` ma
 | `WorkspaceManagerInterface` | interface | `{ count, active, workspace(), workspaces(), add(), switch(), open(), save(), remove(), clear() }`                                                                               | Represents an insertion-ordered workspace registry with an active selection and optional durability.                                                                            |
 
 ### Constants
-
-A `Shape` cell holds the constant's declared type.
 
 | Name                  | Kind  | Signature                          | Summary                                                                                                                                                 |
 | --------------------- | ----- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -103,8 +99,6 @@ on its own, and the classes compose them rather than hiding them.
 
 The total guards, from [`validators.ts`](../src/core/validators.ts). Each narrows an `unknown`
 value arriving from outside the process without throwing on a hostile property access.
-
-In a guard table a `Shape` cell holds the type the guard narrows to.
 
 | Name                  | Kind     | Signature                                        | Summary                                               |
 | --------------------- | -------- | ------------------------------------------------ | ----------------------------------------------------- |
