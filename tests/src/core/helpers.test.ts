@@ -6,7 +6,6 @@ import {
 	countLines,
 	createBinaryContent,
 	createTextContent,
-	escapeRegExp,
 	EXTENSION_LANGUAGES,
 	inferLanguage,
 	isBinary,
@@ -134,22 +133,5 @@ describe('range helpers', () => {
 			start: { line: 5, column: 1 },
 			end: { line: 1, column: 1 },
 		})
-	})
-})
-
-describe('escapeRegExp', () => {
-	it('escapes every regular-expression metacharacter', () => {
-		expect(escapeRegExp('.*+?^${}()|[]\\')).toBe('\\.\\*\\+\\?\\^\\$\\{\\}\\(\\)\\|\\[\\]\\\\')
-	})
-
-	it('leaves already-safe strings unchanged', () => {
-		expect(escapeRegExp('alpha-123_value')).toBe('alpha-123_value')
-	})
-
-	it('round-trips literal text through a new RegExp', () => {
-		const literal = 'file[1].ts?'
-		const pattern = new RegExp(`^${escapeRegExp(literal)}$`)
-		expect(pattern.test(literal)).toBe(true)
-		expect(pattern.test('file1.ts')).toBe(false)
 	})
 })

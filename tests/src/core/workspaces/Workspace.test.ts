@@ -230,6 +230,18 @@ describe('Workspace — search', () => {
 		expect(workspace.read('a.ts', rangeOf(2, 1, 2, 6))?.content).toBe('const')
 	})
 
+	it('matches every metacharacter in a default query as literal text', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'file1.ts\nfile[1].ts?\nfile[1]xts')
+
+		const matches = workspace.search('file[1].ts?')
+
+		expect(matches).toEqual([
+			{ path: 'a.ts', line: 2, column: 1, length: 11, content: 'file[1].ts?' },
+		])
+		expect(workspace.search('(')).toEqual([])
+	})
+
 	it('treats the query as a regex when regex:true', () => {
 		const workspace = createWorkspace()
 		workspace.write('a.ts', 'a1 b2 c3')
@@ -308,6 +320,14 @@ describe('Workspace — replace', () => {
 		expect(result).toEqual({ occurrences: 4, files: 2 })
 		expect(events.write.count).toBe(2) // one per changed file, not per occurrence
 		expect(workspace.file('a.ts')?.state).toBe('modified')
+	})
+
+	it('replaces a default query containing metacharacters as literal text', () => {
+		const workspace = createWorkspace()
+		workspace.write('a.ts', 'a.b axb a.b')
+
+		expect(workspace.replace('a.b', 'X')).toEqual({ occurrences: 2, files: 1 })
+		expect(workspace.read('a.ts')).toBe('X axb X')
 	})
 
 	it('honors a regex replacement and a limit', () => {

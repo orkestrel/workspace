@@ -11,13 +11,12 @@ import type {
 	WorkspaceOptions,
 	WorkspaceSnapshot,
 } from '../types.js'
-import { isArray, isRecord } from '@orkestrel/contract'
+import { escapeRegExp, isArray, isRecord } from '@orkestrel/contract'
 import { Emitter } from '@orkestrel/emitter'
 import { WorkspaceError } from '../errors.js'
 import { createFile } from '../factories.js'
 import {
 	clampRange,
-	escapeRegExp,
 	inferLanguage,
 	isTextContent,
 	isValidRange,

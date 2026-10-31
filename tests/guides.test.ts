@@ -57,7 +57,6 @@ await new GuideCommand({
 		createTextContent,
 		createWorkspace,
 		createWorkspaceManager,
-		escapeRegExp,
 		inferLanguage,
 		isBinary,
 		isTextContent,
@@ -305,7 +304,6 @@ await new GuideCommand({
 			expect(workspace.search('const.')).toEqual([])
 			expect(workspace.search('CONST', { sensitive: false, limit: 2 })).toHaveLength(2)
 			expect(workspace.replace('const', 'let')).toEqual({ occurrences: 3, files: 2 })
-			expect(escapeRegExp('a.b')).toBe('a\\.b')
 		})
 
 		it('moving and removing — the batch answers and the serializable projection', () => {

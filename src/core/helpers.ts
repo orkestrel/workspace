@@ -231,18 +231,3 @@ export function rangeOf(
 ): Range {
 	return { start: { line: fromLine, column: fromColumn }, end: { line: toLine, column: toColumn } }
 }
-
-/**
- * Escapes regular-expression metacharacters for literal matching.
- *
- * @param value - The literal text
- * @returns The escaped regular-expression source
- *
- * @example
- * ```ts
- * escapeRegExp('a.b') // 'a\\.b'
- * ```
- */
-export function escapeRegExp(value: string): string {
-	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}

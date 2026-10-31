@@ -98,7 +98,6 @@ on its own, and the classes compose them rather than hiding them.
 | `sliceRange`         | function | `(text: string, range: Range) => string`                                            | Slices a clamped half-open text range.                                                          |
 | `spliceRange`        | function | `(text: string, range: Range, replacement: string) => string`                       | Replaces a clamped half-open text range.                                                        |
 | `rangeOf`            | function | `(fromLine: number, fromColumn: number, toLine: number, toColumn: number) => Range` | Assembles a nested range from four 1-based coordinates.                                         |
-| `escapeRegExp`       | function | `(value: string) => string`                                                         | Escapes regular-expression metacharacters for literal matching.                                 |
 
 ### Validators
 
@@ -317,7 +316,7 @@ Reads are shaped by what the caller asked for, and binary content is quietly abs
 that promise text:
 
 ```ts
-import { createWorkspace, escapeRegExp, rangeOf } from '@orkestrel/workspace'
+import { createWorkspace, rangeOf } from '@orkestrel/workspace'
 
 const workspace = createWorkspace()
 workspace.write({ 'a.ts': 'const x = 1\nconst y = 2', 'b.ts': 'const z = 3' })
@@ -335,9 +334,9 @@ workspace.has(['missing.ts', 'b.ts']) // false — a batch answers true only whe
 
 workspace.search('const') // three matches, a.ts before b.ts, line order within each
 workspace.search('[a-z]\\d', { regex: true }) // pattern source instead of literal text
+workspace.search('const.') // [] — a literal query reads '.' as a dot, not as any character
 workspace.search('CONST', { sensitive: false, limit: 2 })
 workspace.replace('const', 'let') // { occurrences: 3, files: 2 }
-escapeRegExp('a.b') // 'a\\.b' — what a literal search does for you
 ```
 
 A plain read of a binary path returns `undefined`, exactly as an absent path does; a batch read
@@ -345,9 +344,10 @@ omits both. A ranged read of binary content is the one that throws `MODALITY`, b
 named coordinates that cannot exist. Search and replace skip binary content entirely, so base64
 that happens to spell a query is never a hit.
 
-A query is literal by default — `escapeRegExp` neutralizes its metacharacters — and `regex: true`
-passes it through as pattern source instead. `limit` caps hits for `search` and replacements for
-`replace`, counted across files in insertion order. A pattern that will not compile throws
+A query is literal by default — the `escapeRegExp` function from `@orkestrel/contract` neutralizes
+its metacharacters — and `regex: true` passes it through as pattern source instead. `limit` caps
+hits for `search` and replacements for `replace`, counted across files in insertion order. A
+pattern that will not compile throws
 `PATTERN` rather than silently matching nothing. A zero-width pattern such as `a*` terminates: the
 scan advances past an empty match instead of re-matching the same column.
 
