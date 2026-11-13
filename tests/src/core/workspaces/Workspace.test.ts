@@ -11,7 +11,7 @@ import {
 } from '@src/core'
 import { createRecorder, createRecorders } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { imageWorkspace } from '../../../setup.js'
+import { createSecretWorkspace, imageWorkspace, MALFORMED_PATHS } from '../../../setup.js'
 
 // The in-memory Workspace edit surface (real data, no mocks). Every edit
 // replaces the immutable File at a path (transitioning created → modified); the modality
@@ -361,6 +361,89 @@ describe('Workspace — replace', () => {
 			expect.objectContaining({ code: 'PATTERN' }),
 		)
 	})
+})
+
+// `secret.md` sits first in insertion order, so a skip applied after the walk, or a limit counted
+// before the skip, would surface its text or spend the limit on it.
+describe('Workspace — paths', () => {
+	it('searches the listed files alone, counting the limit within them', () => {
+		const workspace = createSecretWorkspace()
+
+		const matches = workspace.search('vault', { paths: ['notes.md'], limit: 2 })
+
+		expect(matches.map((match) => [match.path, match.line])).toEqual([
+			['notes.md', 1],
+			['notes.md', 2],
+		])
+	})
+
+	it('replaces in the listed files alone, leaving an unlisted file the same value', () => {
+		const workspace = createSecretWorkspace()
+		const secret = workspace.file('secret.md')
+		const events = createRecorders<WorkspaceEventMap, 'write'>(workspace.emitter, ['write'])
+
+		const result = workspace.replace('vault', 'safe', { paths: ['notes.md'] })
+
+		expect(result).toEqual({ occurrences: 2, files: 1 })
+		expect(workspace.file('secret.md')).toBe(secret)
+		expect(events.write.calls.map(([file]) => file.path)).toEqual(['notes.md'])
+		expect(workspace.read('notes.md')).toBe('The safe holds notes.\nThe safe holds more notes.')
+	})
+
+	it('lands a limited replacement in the listed file', () => {
+		const workspace = createSecretWorkspace()
+		const secret = workspace.file('secret.md')
+
+		const result = workspace.replace('vault', 'safe', { paths: ['notes.md'], limit: 1 })
+
+		expect(result).toEqual({ occurrences: 1, files: 1 })
+		expect(workspace.file('secret.md')).toBe(secret)
+		expect(workspace.read('notes.md')).toBe('The safe holds notes.\nThe vault holds more notes.')
+	})
+
+	it('reads an empty list as no file and a listed absent path as no error', () => {
+		const workspace = createSecretWorkspace()
+		const files = workspace.files()
+		const events = createRecorders<WorkspaceEventMap, 'write'>(workspace.emitter, ['write'])
+
+		expect(workspace.search('vault', { paths: [] })).toEqual([])
+		expect(workspace.replace('vault', 'safe', { paths: [] })).toEqual({ occurrences: 0, files: 0 })
+		expect(workspace.search('vault', { paths: ['ghost.md'] })).toEqual([])
+		expect(workspace.replace('vault', 'safe', { paths: ['ghost.md'] })).toEqual({
+			occurrences: 0,
+			files: 0,
+		})
+		expect(workspace.files().every((file, index) => file === files[index])).toBe(true)
+		expect(events.write.count).toBe(0)
+		expect(
+			workspace.search('vault', { paths: ['ghost.md', 'notes.md'] }).map((match) => match.path),
+		).toEqual(['notes.md', 'notes.md'])
+		// The pattern compiles before the list is read, so an empty list still refuses bad source.
+		expect(() => workspace.search('(', { regex: true, paths: [] })).toThrow(
+			expect.objectContaining({ code: 'PATTERN' }),
+		)
+	})
+
+	for (const [name, value] of MALFORMED_PATHS) {
+		it(`refuses ${name} as paths for search and replace, changing nothing`, () => {
+			const workspace = createSecretWorkspace()
+			const files = workspace.files()
+
+			const outcomes = [
+				attempt(() => Reflect.apply(workspace.search, workspace, ['vault', { paths: value }])),
+				attempt(() =>
+					Reflect.apply(workspace.replace, workspace, ['vault', 'safe', { paths: value }]),
+				),
+			]
+
+			expect(
+				outcomes.map(
+					(outcome) => !outcome.success && isWorkspaceError(outcome.error) && outcome.error.code,
+				),
+			).toEqual(['PATHS', 'PATHS'])
+			expect(workspace.files().every((file, index) => file === files[index])).toBe(true)
+		})
+	}
 })
 
 describe('Workspace — move', () => {

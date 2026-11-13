@@ -303,6 +303,9 @@ await new GuideCommand({
 			expect(workspace.search('const.', { regex: true })).toHaveLength(3)
 			expect(workspace.search('const.')).toEqual([])
 			expect(workspace.search('CONST', { sensitive: false, limit: 2 })).toHaveLength(2)
+			expect(workspace.search('const', { paths: ['b.ts'] }).map((match) => match.path)).toEqual([
+				'b.ts',
+			])
 			expect(workspace.replace('const', 'let')).toEqual({ occurrences: 3, files: 2 })
 		})
 

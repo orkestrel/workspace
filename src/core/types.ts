@@ -71,12 +71,14 @@ export interface ReadResult {
  * If `regex` is `true`, the query is treated as regular-expression source; if `false`, it is
  * escaped and matched literally. Default: `false`. If `sensitive` is `false`, matching ignores
  * case; if `true`, it does not. Default: `true`. `limit` caps the search or replacement count.
- * Default: unlimited.
+ * Default: unlimited. `paths` limits the scan to the listed paths; a file outside the list is
+ * skipped. Default: every file.
  */
 export interface SearchOptions {
 	readonly regex?: boolean
 	readonly sensitive?: boolean
 	readonly limit?: number
+	readonly paths?: readonly string[]
 }
 
 /** Reports one 1-based search hit and the full line that contains it. */
@@ -155,7 +157,7 @@ export interface WorkspaceSnapshotRow {
 }
 
 /** Names the machine-readable failure codes raised by the workspace edit surface. */
-export type WorkspaceErrorCode = 'MISSING' | 'MODALITY' | 'PATTERN' | 'RANGE'
+export type WorkspaceErrorCode = 'MISSING' | 'MODALITY' | 'PATHS' | 'PATTERN' | 'RANGE'
 
 /** Represents a mutable path-keyed editing surface over immutable file values. */
 export interface WorkspaceInterface {
@@ -221,7 +223,8 @@ export interface WorkspaceInterface {
 	 * @param query - The literal text, or regular-expression source under `regex`
 	 * @param options - Optional matching controls
 	 * @returns Each hit in insertion order across files, then line order within a file
-	 * @throws Thrown when the pattern source will not compile (`PATTERN`).
+	 * @throws Thrown when the pattern source will not compile (`PATTERN`), or when `paths` is not an
+	 * array of strings (`PATHS`).
 	 */
 	search(query: string, options?: SearchOptions): readonly SearchMatch[]
 	/**
@@ -231,7 +234,8 @@ export interface WorkspaceInterface {
 	 * @param replacement - The text each match becomes
 	 * @param options - Optional matching controls
 	 * @returns The occurrences replaced and the files changed
-	 * @throws Thrown when the pattern source will not compile (`PATTERN`).
+	 * @throws Thrown when the pattern source will not compile (`PATTERN`), or when `paths` is not an
+	 * array of strings (`PATHS`).
 	 */
 	replace(query: string, replacement: string, options?: SearchOptions): ReplaceResult
 	/**

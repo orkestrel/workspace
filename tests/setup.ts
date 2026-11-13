@@ -137,3 +137,39 @@ export function imageWorkspace(): Workspace {
 	const image = createFile({ path: 'icon.png', content: createBinaryContent('AAAA', 'image/png') })
 	return new Workspace({ seed: [image] })
 }
+
+/**
+ * Creates a workspace seeded silently with `secret.md` then `notes.md`, each holding the query
+ * `vault` once on each of its two lines.
+ *
+ * @returns A workspace whose first file in insertion order is the one a `paths` list leaves out
+ */
+export function createSecretWorkspace(): Workspace {
+	return new Workspace({
+		seed: [
+			createFile({
+				path: 'secret.md',
+				content: createTextContent('The vault code is 7731.\nThe vault code is 7731.', 'markdown'),
+			}),
+			createFile({
+				path: 'notes.md',
+				content: createTextContent(
+					'The vault holds notes.\nThe vault holds more notes.',
+					'markdown',
+				),
+			}),
+		],
+	})
+}
+
+/** Lists each malformed `paths` value a search or a replacement refuses, by a readable name. */
+export const MALFORMED_PATHS: ReadonlyArray<readonly [name: string, value: unknown]> =
+	Object.freeze([
+		['a bare path string', 'notes.md'],
+		['null', null],
+		['a list holding a number', ['notes.md', 7]],
+		['a list holding undefined', [undefined]],
+		['a sparse list', new Array<string>(1)],
+		['an array-like record', { 0: 'notes.md', length: 1 }],
+		['a set of paths', new Set(['notes.md'])],
+	])

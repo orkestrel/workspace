@@ -11,7 +11,7 @@ import type {
 	WorkspaceOptions,
 	WorkspaceSnapshot,
 } from '../types.js'
-import { escapeRegExp, isArray, isRecord } from '@orkestrel/contract'
+import { arrayOf, escapeRegExp, isArray, isRecord, isString } from '@orkestrel/contract'
 import { Emitter } from '@orkestrel/emitter'
 import { WorkspaceError } from '../errors.js'
 import { createFile } from '../factories.js'
@@ -119,10 +119,12 @@ export class Workspace implements WorkspaceInterface {
 
 	search(query: string, options?: SearchOptions): readonly SearchMatch[] {
 		const pattern = this.#pattern(query, options)
+		const paths = this.#paths(options)
 		const limit = options?.limit
 		const matches: SearchMatch[] = []
 		for (const file of this.#files.values()) {
 			if (limit !== undefined && matches.length >= limit) break
+			if (paths !== undefined && !paths.has(file.path)) continue
 			if (!isTextContent(file.content)) continue
 			const lines = file.content.text.split(/\r\n|\n/)
 			for (const [index, lineText] of lines.entries()) {
@@ -145,11 +147,13 @@ export class Workspace implements WorkspaceInterface {
 
 	replace(query: string, replacement: string, options?: SearchOptions): ReplaceResult {
 		const pattern = this.#pattern(query, options)
+		const paths = this.#paths(options)
 		const limit = options?.limit
 		const changes: number[] = []
 		for (const [path, file] of this.#files) {
 			const occurrences = changes.reduce((total, count) => total + count, 0)
 			if (limit !== undefined && occurrences >= limit) break
+			if (paths !== undefined && !paths.has(path)) continue
 			if (!isTextContent(file.content)) continue
 			const remaining = limit === undefined ? undefined : limit - occurrences
 			pattern.lastIndex = 0
@@ -343,5 +347,17 @@ export class Workspace implements WorkspaceInterface {
 		} catch {
 			throw new WorkspaceError('PATTERN', `Invalid search pattern: ${query}`, { query })
 		}
+	}
+
+	// Reads the `paths` option into one membership set for the call, refusing a malformed list.
+	#paths(options?: SearchOptions): ReadonlySet<string> | undefined {
+		const paths: unknown = options?.paths
+		if (paths === undefined) return undefined
+		if (!arrayOf(isString)(paths)) {
+			throw new WorkspaceError('PATHS', 'Invalid search paths: expected an array of path strings', {
+				paths,
+			})
+		}
+		return new Set(paths)
 	}
 }

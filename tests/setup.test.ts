@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	buildWorkspaceSnapshot,
 	createRecordedStore,
+	createSecretWorkspace,
 	seen,
 	WORKSPACE_STORE_CASES,
 } from './setup.js'
@@ -35,6 +36,20 @@ describe('buildWorkspaceSnapshot', () => {
 		expect(second).toEqual(first)
 		expect(second).not.toBe(first)
 		expect(second.files).not.toBe(first.files)
+	})
+})
+
+describe('createSecretWorkspace', () => {
+	it('puts secret.md first in insertion order, each file holding the query on both lines', () => {
+		const workspace = createSecretWorkspace()
+
+		expect(workspace.files().map((file) => file.path)).toEqual(['secret.md', 'notes.md'])
+		expect(workspace.search('vault').map((match) => [match.path, match.line])).toEqual([
+			['secret.md', 1],
+			['secret.md', 2],
+			['notes.md', 1],
+			['notes.md', 2],
+		])
 	})
 })
 

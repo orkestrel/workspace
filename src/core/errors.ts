@@ -50,7 +50,13 @@ export function isWorkspaceError(value: unknown): value is WorkspaceError {
 		const brand = INTRINSICS.describe(value, Symbol.for('@orkestrel/workspace.WorkspaceError'))
 		if (brand?.value !== value) return false
 		const code: unknown = INTRINSICS.reflect.read(value, 'code')
-		if (code !== 'MISSING' && code !== 'MODALITY' && code !== 'PATTERN' && code !== 'RANGE')
+		if (
+			code !== 'MISSING' &&
+			code !== 'MODALITY' &&
+			code !== 'PATHS' &&
+			code !== 'PATTERN' &&
+			code !== 'RANGE'
+		)
 			return false
 		const context: unknown = INTRINSICS.reflect.read(value, 'context')
 		return context === undefined || isObject(context) || isFunction(context)
