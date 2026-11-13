@@ -1,6 +1,6 @@
 {
 	"name": "@orkestrel/workspace",
-	"version": "0.0.18",
+	"version": "0.0.19",
 	"description": "A virtual file workspace for the @orkestrel line — path-keyed immutable files, an edit and search surface, registries with an active pointer, and pluggable snapshot stores. Part of the @orkestrel line.",
 	"keywords": [
 		"edit",
@@ -87,6 +87,6 @@
 		"vitest": "^5.1.0"
 	},
 	"engines": {
-		"node": ">=22.12.0"
+		"node": "^22.18.0 || >=24.4.0"
 	}
 }
