@@ -76,9 +76,9 @@
 	"devDependencies": {
 		"@microsoft/api-extractor": "^7.60.1",
 		"@orkestrel/guide": "^0.0.31",
-		"@orkestrel/probe": "^0.0.29",
-		"@orkestrel/scaffold": "^0.0.131",
-		"@orkestrel/test": "^0.0.34",
+		"@orkestrel/probe": "^0.0.30",
+		"@orkestrel/scaffold": "^0.0.133",
+		"@orkestrel/test": "^0.0.37",
 		"@types/node": "^26.6.6",
 		"oxfmt": "^0.78.0",
 		"oxlint": "^1.93.0",
