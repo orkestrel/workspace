@@ -1,4 +1,4 @@
-import type { WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
+import type { SearchOptions, WorkspaceSnapshot, WorkspaceStoreInterface } from '@src/core'
 import {
 	createBinaryContent,
 	createFile,
@@ -173,3 +173,19 @@ export const MALFORMED_PATHS: ReadonlyArray<readonly [name: string, value: unkno
 		['an array-like record', { 0: 'notes.md', length: 1 }],
 		['a set of paths', new Set(['notes.md'])],
 	])
+
+/**
+ * Lists every combination of `regex` and `sensitive` (each unset, `true`, or `false`) with
+ * `limit` (unset, 1, 2, or 3), so a `paths` claim is driven under each matching mode.
+ */
+export const SCOPED_SEARCH_OPTIONS: readonly SearchOptions[] = Object.freeze(
+	[undefined, true, false].flatMap((regex) =>
+		[undefined, true, false].flatMap((sensitive) =>
+			[undefined, 1, 2, 3].map((limit) => ({
+				...(regex === undefined ? {} : { regex }),
+				...(sensitive === undefined ? {} : { sensitive }),
+				...(limit === undefined ? {} : { limit }),
+			})),
+		),
+	),
+)

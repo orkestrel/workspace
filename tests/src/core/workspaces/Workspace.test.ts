@@ -11,7 +11,12 @@ import {
 } from '@src/core'
 import { createRecorder, createRecorders } from '@orkestrel/test'
 import { describe, expect, it } from 'vitest'
-import { createSecretWorkspace, imageWorkspace, MALFORMED_PATHS } from '../../../setup.js'
+import {
+	createSecretWorkspace,
+	imageWorkspace,
+	MALFORMED_PATHS,
+	SCOPED_SEARCH_OPTIONS,
+} from '../../../setup.js'
 
 // The in-memory Workspace edit surface (real data, no mocks). Every edit
 // replaces the immutable File at a path (transitioning created → modified); the modality
@@ -422,6 +427,65 @@ describe('Workspace — paths', () => {
 		expect(() => workspace.search('(', { regex: true, paths: [] })).toThrow(
 			expect.objectContaining({ code: 'PATTERN' }),
 		)
+	})
+
+	it('stays inside the list under every regex, sensitive, and limit setting', () => {
+		// `notes.md` holds the query once on each of its two lines, so a row's expected count is its
+		// limit capped at two, read from the fixture rather than from the walk under test.
+		const observed = SCOPED_SEARCH_OPTIONS.map((options) => {
+			const workspace = createSecretWorkspace()
+			const secret = workspace.file('secret.md')
+			const events = createRecorders<WorkspaceEventMap, 'write'>(workspace.emitter, ['write'])
+			const hits = workspace.search('vault', { ...options, paths: ['notes.md'] })
+			const result = workspace.replace('vault', 'safe', { ...options, paths: ['notes.md'] })
+			return {
+				options,
+				hits: hits.map((hit) => [hit.path, hit.line]),
+				result,
+				kept: workspace.file('secret.md') === secret,
+				writes: events.write.calls.map(([file]) => file.path),
+			}
+		})
+
+		expect(SCOPED_SEARCH_OPTIONS).toHaveLength(36)
+		expect(observed).toEqual(
+			SCOPED_SEARCH_OPTIONS.map((options) => ({
+				options,
+				hits: [
+					['notes.md', 1],
+					['notes.md', 2],
+				].slice(0, Math.min(options.limit ?? 2, 2)),
+				result: { occurrences: Math.min(options.limit ?? 2, 2), files: 1 },
+				kept: true,
+				writes: ['notes.md'],
+			})),
+		)
+	})
+
+	it('matches a listed path exactly and acts once for a repeated path', () => {
+		const workspace = createSecretWorkspace()
+		const files = workspace.files()
+		const unmatched = ['./notes.md', 'NOTES.md', 'SECRET.md']
+
+		expect(workspace.search('vault', { paths: unmatched })).toEqual([])
+		expect(workspace.replace('vault', 'safe', { paths: unmatched })).toEqual({
+			occurrences: 0,
+			files: 0,
+		})
+		expect(workspace.files().every((file, index) => file === files[index])).toBe(true)
+		expect(
+			workspace
+				.search('vault', { paths: ['notes.md', 'notes.md', 'notes.md'] })
+				.map((hit) => [hit.path, hit.line]),
+		).toEqual([
+			['notes.md', 1],
+			['notes.md', 2],
+		])
+		expect(workspace.replace('vault', 'safe', { paths: ['notes.md', 'notes.md'] })).toEqual({
+			occurrences: 2,
+			files: 1,
+		})
+		expect(workspace.file('secret.md')).toBe(files[0])
 	})
 
 	for (const [name, value] of MALFORMED_PATHS) {
