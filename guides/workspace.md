@@ -446,8 +446,9 @@ manager.remove(['scratch', 'ghost']) // false — 'ghost' was never registered, 
 manager.clear() // empty registry, no selection
 ```
 
-Only the first `add` auto-activates; after that the selection moves solely by `switch`, `open`, or
-the removal of whatever it pointed at. Adding an id that already exists replaces the registered
+An `add` activates the workspace it adds whenever none is active: the first `add`, and an `add`
+after the active workspace was removed or the registry cleared. Beside an active workspace, the
+selection moves solely by `switch`, `open`, or the removal of whatever it pointed at. Adding an id that already exists replaces the registered
 workspace, and because `active` is resolved through the map on every read, a replaced active id
 resolves to the replacement rather than to a detached instance.
 

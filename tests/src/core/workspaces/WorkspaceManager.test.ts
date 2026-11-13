@@ -11,9 +11,10 @@ import { describe, expect, it } from 'vitest'
 
 // WorkspaceManager is the registry over the workspace layer WITH an active pointer — an
 // insertion-ordered store keyed by id (add / workspace / workspaces / count / remove(id|ids[]) /
-// clear) PLUS active / switch. Event-free (each Workspace owns its own emitter). The first add
-// auto-activates; a later add leaves active; switch re-points it; removing the active (or clear)
-// clears it. Real data, no mocks — each `add` mints a genuine Workspace.
+// clear) PLUS active / switch. Event-free (each Workspace owns its own emitter). An add
+// auto-activates whenever nothing is active; an add beside an active one leaves it; switch re-points
+// it; removing the active (or clear) clears it. Real data, no mocks — each `add` mints a genuine
+// Workspace.
 
 describe('WorkspaceManager — add / accessors / count', () => {
 	it('starts empty with no active workspace', () => {
@@ -102,6 +103,21 @@ describe('WorkspaceManager — active pointer + switch + auto-activate', () => {
 		const second = manager.add({ id: 'b' })
 		expect(manager.active).toBe(first) // a later add does NOT steal active
 		expect(second).not.toBe(first)
+	})
+
+	it('an add activates whenever nothing is active: after the active one is removed, and after clear', () => {
+		const manager = new WorkspaceManager()
+		manager.add({ id: 'a' })
+		manager.add({ id: 'b' })
+
+		manager.remove('a')
+		expect(manager.active).toBeUndefined()
+		const later = manager.add({ id: 'c' })
+		expect(manager.active).toBe(later)
+
+		manager.clear()
+		const fresh = manager.add({ id: 'd' })
+		expect(manager.active).toBe(fresh)
 	})
 
 	it('switch(id) re-points active and returns it', () => {
